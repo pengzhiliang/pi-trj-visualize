@@ -1,0 +1,8 @@
+node_modules/
+lib/
+artifacts/
+coverage/
+*.tsbuildinfo
+.DS_Store
+playwright-report/
+test-results/

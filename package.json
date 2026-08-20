@@ -1,0 +1,42 @@
+{
+  "name": "pi-trj-visualize",
+  "version": "1.0.0",
+  "description": "A standalone, read-only visual explorer for Pi coding-agent sessions",
+  "keywords": [
+    "pi",
+    "coding-agent",
+    "session",
+    "trace",
+    "visualization"
+  ],
+  "type": "module",
+  "bin": {
+    "pi-trj-visualize": "./lib/cli.js"
+  },
+  "files": [
+    "lib",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "rm -rf lib && tsc -p tsconfig.json && node scripts/build-web.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "start": "node lib/cli.js",
+    "dev": "npm run build && node lib/cli.js",
+    "e2e": "playwright test"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "@types/node": "^22.20.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "license": "MIT",
+  "packageManager": "pnpm@11.7.0"
+}

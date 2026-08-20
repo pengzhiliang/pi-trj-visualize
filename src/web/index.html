@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Pi Trj Visualize</title>
+<style>
+:root{
+  --bg:#eef1f6;--panel:#f8fafc;--side:#ffffff;--line:#dfe4ec;--line2:#cfd6e2;--txt:#172033;--muted:#718096;
+  --faint:#97a3b6;--blue:#2563eb;--blue2:#dbeafe;--violet:#7c3aed;--green:#059669;--amber:#d97706;--red:#dc2626;
+  --shadow:0 12px 32px rgba(22,34,54,.08);--card:rgba(255,255,255,.82);--hover:#f1f5f9;
+}
+:root[data-theme="dark"]{
+  --bg:#0b1018;--panel:#101722;--side:#121a26;--line:#253043;--line2:#344157;--txt:#e5eaf3;--muted:#91a0b7;
+  --faint:#68778f;--blue:#6e9cff;--blue2:#1e3153;--violet:#aa8bff;--green:#36c994;--amber:#f0ae5a;--red:#ff6b6b;
+  --shadow:0 16px 40px rgba(0,0,0,.28);--card:rgba(20,29,42,.88);--hover:#1a2534;
+}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font:13px/1.45 Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);overflow:hidden}
+button,input,select{font:inherit;color:inherit}.app{height:100%;min-height:0;overflow:hidden;display:grid;grid-template-columns:370px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+.sidebar{height:100%;min-height:0;overflow:hidden;background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;position:relative;z-index:20}
+.brand{height:68px;padding:13px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#111827,#334155);color:#fff;display:grid;place-items:center;font:700 24px/1 Georgia,serif;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 6px 15px rgba(15,23,42,.18)}
+:root[data-theme="dark"] .logo{background:linear-gradient(145deg,#e8edf7,#9ca9bc);color:#111827}
+.brand-copy{min-width:0}.brand h1{font-size:15px;line-height:1.15;margin:0;letter-spacing:.01em}.brand p{margin:4px 0 0;color:var(--muted);font-size:11px}.brand .count{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.side-tools{padding:12px 14px 10px;border-bottom:1px solid var(--line)}
+.searchbox{height:38px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--panel);transition:.15s}.searchbox:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 14%,transparent)}
+.searchbox svg{width:15px;color:var(--muted);flex:none}.searchbox input{width:100%;border:0;outline:0;background:transparent}.searchbox kbd{font:10px ui-monospace,monospace;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+.filters{display:flex;align-items:center;gap:6px;margin-top:9px}.filters select{min-width:0;flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px;outline:0;color:var(--muted)}
+.icon-btn{border:1px solid var(--line);background:var(--panel);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--muted);transition:.15s}.icon-btn:hover{background:var(--hover);color:var(--txt);border-color:var(--line2)}.icon-btn.spin svg{animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.session-list{flex:1;overflow:auto;padding:8px 8px 14px;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}.day-label{padding:9px 10px 5px;color:var(--faint);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:8px}.day-label:after{content:"";height:1px;background:var(--line);flex:1}
+.session{position:relative;border:1px solid transparent;border-radius:11px;padding:10px 11px;margin:2px 0;cursor:pointer;transition:background .12s,border-color .12s,transform .12s}.session:hover{background:var(--hover);border-color:var(--line)}.session.selected{background:color-mix(in srgb,var(--blue) 9%,var(--side));border-color:color-mix(in srgb,var(--blue) 34%,var(--line))}.session.bad{opacity:.62}
+.session-head{display:flex;align-items:center;gap:7px;min-width:0}.project{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 13%,transparent);flex:none}.age{margin-left:auto;color:var(--faint);font-size:10px;white-space:nowrap}.prompt{font-size:12px;margin:5px 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)}.prompt.empty{color:var(--faint);font-style:italic}
+.meta{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden}.model{max-width:120px;overflow:hidden;text-overflow:ellipsis}.sep{width:2px;height:2px;border-radius:50%;background:var(--faint);flex:none}.warn{color:var(--amber)}
+.side-footer{height:42px;border-top:1px solid var(--line);padding:0 14px;display:flex;align-items:center;gap:7px;color:var(--faint);font:10px ui-monospace,monospace;min-width:0}.side-footer span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}.status-dot.off{background:var(--red)}
+.main{height:100%;overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}.topbar{min-height:68px;background:color-mix(in srgb,var(--panel) 92%,transparent);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:9px 14px 9px 18px;backdrop-filter:blur(12px);z-index:10}.mobile-menu{display:none}
+.selection{display:flex;align-items:center;gap:8px;min-width:0;flex:1}.lane-chip{height:49px;min-width:0;max-width:340px;flex:0 1 340px;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:6px 32px 6px 10px;position:relative}.lane-chip.l1{border-left:3px solid var(--blue)}.lane-title{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;min-width:0}.lane-title span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lane-index{font:700 9px ui-monospace,monospace;color:#fff;background:var(--blue);border-radius:4px;padding:1px 4px}.branch-select{width:100%;border:0;background:transparent;color:var(--muted);outline:0;font-size:10px;padding:3px 0 0}.lane-remove{position:absolute;right:6px;top:6px;border:0;background:transparent;color:var(--faint);cursor:pointer;font-size:16px;line-height:1}.lane-remove:hover{color:var(--red)}
+.back-parent{height:49px;flex:none;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 11px;color:var(--blue);cursor:pointer}.back-parent:hover{background:var(--hover)}.subagent-picker{height:38px;max-width:210px;border:1px solid color-mix(in srgb,var(--violet) 42%,var(--line));border-radius:9px;padding:0 9px;background:var(--panel);color:var(--violet);outline:0}.top-actions{display:flex;align-items:center;gap:6px}.action{height:32px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:0 10px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted)}.action:hover{color:var(--txt);background:var(--hover)}.action.on{color:var(--green)}.action svg,.icon-btn svg{width:15px;height:15px}.action .label{font-size:11px}
+.summarybar{height:34px;padding:0 18px;display:flex;align-items:center;gap:13px;border-bottom:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden}.metric b{color:var(--txt);font-weight:650}.summarybar .grow{flex:1}.readonly{color:var(--green);display:flex;align-items:center;gap:5px}.readonly:before{content:"";width:5px;height:5px;border-radius:50%;background:var(--green)}
+.workspace{position:relative;flex:1;min-height:0;padding:10px}.frame-shell{width:100%;height:100%;background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow);position:relative}.frame-shell iframe{width:100%;height:100%;border:0;display:block;background:var(--panel)}
+.empty-state{position:absolute;inset:0;display:grid;place-items:center;padding:30px;background:radial-gradient(circle at 50% 32%,color-mix(in srgb,var(--blue) 7%,transparent),transparent 34%)}.empty-card{text-align:center;max-width:480px}.empty-mark{width:68px;height:68px;border-radius:20px;margin:0 auto 18px;display:grid;place-items:center;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);font:32px Georgia;color:var(--blue)}.empty-card h2{margin:0 0 8px;font-size:18px}.empty-card p{margin:0;color:var(--muted);line-height:1.7}.empty-card .tip{display:inline-block;margin-top:16px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--faint);font-size:11px}
+.loading{position:absolute;inset:0;background:color-mix(in srgb,var(--panel) 80%,transparent);backdrop-filter:blur(2px);display:none;place-items:center;z-index:5}.loading.show{display:grid}.loader{text-align:center;color:var(--muted)}.loader-ring{width:28px;height:28px;border:2px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 9px}.error-box{max-width:480px;padding:18px;border:1px solid color-mix(in srgb,var(--red) 35%,var(--line));border-radius:12px;background:var(--panel);color:var(--red)}.error-box button{margin-top:12px;border:1px solid var(--line);background:var(--hover);border-radius:7px;padding:5px 10px;cursor:pointer}
+.toast{position:fixed;right:18px;bottom:18px;z-index:100;background:#111827;color:#fff;border-radius:9px;padding:9px 13px;box-shadow:0 8px 25px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s;font-size:12px}.toast.show{opacity:1;transform:none}.backdrop{display:none}
+.skeleton{height:72px;border-radius:10px;margin:6px;background:linear-gradient(90deg,var(--hover),var(--panel),var(--hover));background-size:220% 100%;animation:shimmer 1.3s infinite}@keyframes shimmer{to{background-position:-220% 0}}
+@media(max-width:1050px){.app{grid-template-columns:320px minmax(0,1fr)}.action .label{display:none}.lane-chip{max-width:270px}.sidebar{font-size:12px}}
+@media(max-width:760px){.app{display:block}.sidebar{position:fixed;inset:0 auto 0 0;width:min(88vw,370px);transform:translateX(-102%);transition:.2s;box-shadow:var(--shadow)}body.nav-open .sidebar{transform:none}.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:15}body.nav-open .backdrop{display:block}.main{height:100%}.mobile-menu{display:grid}.topbar{padding-left:10px}.selection{overflow:hidden}.lane-chip{min-width:190px}.summarybar{padding-left:10px}.workspace{padding:6px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <header class="brand"><div class="logo">π</div><div class="brand-copy"><h1>Pi Trj Visualize</h1><p>会话探索路径 · 只读</p></div><div class="count" id="sessionCount">—</div></header>
+    <div class="side-tools">
+      <label class="searchbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="search" type="search" placeholder="搜索项目、提示词、模型…" autocomplete="off"><kbd>/</kbd>
+      </label>
+      <div class="filters"><select id="projectFilter"><option value="">全部项目</option></select><button class="icon-btn" id="refreshList" title="重新扫描 session"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></div>
+    </div>
+    <div class="session-list" id="sessionList"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    <footer class="side-footer"><i class="status-dot" id="statusDot"></i><span id="sessionsRoot">连接中…</span></footer>
+  </aside>
+  <div class="backdrop" id="backdrop"></div>
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn mobile-menu" id="mobileMenu" title="会话列表"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div class="selection" id="selection"></div>
+      <div class="top-actions">
+        <button class="action on" id="autoRefresh" title="自动跟随活跃 session"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/></svg><span class="label">自动刷新</span></button>
+        <button class="action" id="themeToggle" title="切换主题"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 15.5A9 9 0 1 1 8.5 3.4a7 7 0 0 0 12.1 12.1Z"/></svg></button>
+        <button class="action" id="refreshView" title="刷新当前视图"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+      </div>
+    </header>
+    <div class="summarybar" id="summarybar"><span>从左侧选择一个 Pi session</span><span class="grow"></span><span class="readonly">不会修改 ~/.pi</span></div>
+    <section class="workspace">
+      <div class="frame-shell">
+        <iframe id="mazeFrame" src="/maze.html" sandbox="allow-scripts allow-downloads allow-same-origin" title="Pi session maze timeline"></iframe>
+        <div class="empty-state" id="emptyState"><div class="empty-card"><div class="empty-mark">π</div><h2>选择一段探索旅程</h2><p>打开一个会话查看模型调用、工具瀑布、失败支路与折返。<br>Subagent 会按真实墙钟时间以不同颜色画在主会话下方。</p><span class="tip">提示：按 / 快速搜索会话</span></div></div>
+        <div class="loading" id="loading"><div class="loader"><div class="loader-ring"></div><span>解析 Pi session…</span></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+'use strict'
+const state = { sessions: [], selected: [], details: [], trail: [], frameReady: false, pendingMessage: null, auto: true, theme: '', sessionsRoot: '', refreshing: false, viewSeq: 0 }
+const $ = id => document.getElementById(id)
+const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+const fmtN = n => new Intl.NumberFormat('zh-CN',{notation:n >= 10000?'compact':'standard',maximumFractionDigits:1}).format(n || 0)
+const fmtMoney = n => n > 0 ? '$' + (n < .01 ? n.toFixed(4) : n.toFixed(2)) : '—'
+function fmtDuration(ms){ const s=Math.max(0,ms/1000); if(s>=3600)return (s/3600).toFixed(1)+'h'; if(s>=120)return Math.round(s/60)+'m'; return (Math.round(s*10)/10)+'s' }
+function relativeTime(iso){ const d=(Date.now()-Date.parse(iso))/1000; if(d<45)return '刚刚'; if(d<3600)return Math.floor(d/60)+' 分钟前'; if(d<86400)return Math.floor(d/3600)+' 小时前'; if(d<604800)return Math.floor(d/86400)+' 天前'; return new Date(iso).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'}) }
+function dayGroup(iso){ const d=new Date(iso), now=new Date(); const day=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()); const diff=Math.round((today-day)/86400000); return diff===0?'今天':diff===1?'昨天':diff<7?'最近 7 天':d.toLocaleDateString('zh-CN',{year:d.getFullYear()===now.getFullYear()?undefined:'numeric',month:'long'}) }
+function toast(message){ const el=$('toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>el.classList.remove('show'),2200) }
+function setConnected(ok){ $('statusDot').classList.toggle('off',!ok) }
+
+function initTheme(){ state.theme=localStorage.getItem('pi-trj-visualize-theme') || localStorage.getItem('pi-atlas-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); applyTheme() }
+function applyTheme(){ document.documentElement.dataset.theme=state.theme; document.documentElement.style.colorScheme=state.theme; localStorage.setItem('pi-trj-visualize-theme',state.theme); localStorage.removeItem('pi-atlas-theme'); postMaze({kind:'trace-theme',mode:state.theme}) }
+$('themeToggle').addEventListener('click',()=>{state.theme=state.theme==='dark'?'light':'dark';applyTheme()})
+
+function sessionLabel(session){ return session.name || session.project || '未命名会话' }
+function renderProjectFilter(){ const select=$('projectFilter'), value=select.value; const projects=[...new Set(state.sessions.map(s=>s.project).filter(Boolean))].sort((a,b)=>a.localeCompare(b)); select.innerHTML='<option value="">全部项目</option>'+projects.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join(''); if(projects.includes(value))select.value=value }
+function filteredSessions(){
+  const q=$('search').value.trim().toLowerCase(), project=$('projectFilter').value
+  const matches=s=>[s.name,s.project,s.cwd,s.firstPrompt,s.model,s.provider].some(v=>String(v??'').toLowerCase().includes(q))
+  return state.sessions.filter(s=>s.parentId==null).filter(s=>{
+    if(project&&s.project!==project)return false
+    if(!q)return true
+    return matches(s)||state.sessions.some(child=>child.parentId===s.id&&matches(child))
+  })
+}
+function renderSessions(){
+  const sessions=filteredSessions(); let html='', group='';
+  for(const s of sessions){ const g=dayGroup(s.modifiedAt); if(g!==group){group=g;html+=`<div class="day-label">${esc(g)}</div>`}
+    const isSelected=state.selected[0]?.id===s.id, selectedSummary=state.sessions.find(x=>x.id===state.selected[0]?.id), isAncestor=selectedSummary?.parentId===s.id, cls=isSelected||isAncestor?' selected':'';
+    const prompt=s.error ? '无法解析：'+s.error : (s.name || s.firstPrompt || '空会话');
+    html+=`<article class="session${cls}${s.error?' bad':''}" data-id="${s.id}" tabindex="0">
+      <div class="session-head">${s.active?'<i class="live-dot"></i>':''}<span class="project">${esc(s.project)}</span><span class="age">${relativeTime(s.modifiedAt)}</span></div>
+      <div class="prompt${prompt==='空会话'?' empty':''}" title="${esc(prompt)}">${esc(prompt)}</div>
+      <div class="meta"><span class="model">${esc(s.model||'未知模型')}</span><i class="sep"></i><span>${s.steps} 步</span><i class="sep"></i><span>${fmtN(s.totalTokens)} tok</span>${s.subagents>0?`<i class="sep"></i><span style="color:var(--violet)">⌁ ${s.subagents} 个 Subagent</span>`:''}${s.branches>1?`<i class="sep"></i><span>${s.branches} 分支</span>`:''}${s.warningCount?`<span class="warn">⚠ ${s.warningCount}</span>`:''}</div>
+      </article>`
+  }
+  if(!html)html='<div class="empty-card" style="padding:42px 18px"><p>没有匹配的 session</p></div>';
+  $('sessionList').innerHTML=html
+}
+
+function updateUrl(){ const url=new URL(location.href); if(state.selected.length){url.searchParams.set('sessions',state.selected.map(x=>x.id).join(',')); const leaves=state.selected.map(x=>x.leaf||'').join(','); if(leaves.replace(/,/g,''))url.searchParams.set('leaves',leaves);else url.searchParams.delete('leaves')}else{url.searchParams.delete('sessions');url.searchParams.delete('leaves')} history.replaceState(null,'',url) }
+function selectPrimary(id){ const session=state.sessions.find(s=>s.id===id); if(!session||session.error)return; state.trail=[];state.selected=[{id,leaf:null}]; state.details=[]; closeNav(); renderSessions(); loadView(false) }
+function openSubagent(id){
+  const child=state.sessions.find(s=>s.id===id)
+  if(!child||child.error){toast('找不到 Subagent session');return}
+  if(state.selected[0])state.trail.push({...state.selected[0]})
+  state.selected=[{id,leaf:null}];state.details=[];renderSessions();loadView(false)
+}
+function backToParent(){
+  const previous=state.trail.pop(), parentId=previous?.id||state.details[0]?.session?.parentId
+  if(!parentId)return
+  state.selected=[{id:parentId,leaf:previous?.leaf||null}];state.details=[];renderSessions();loadView(false)
+}
+$('sessionList').addEventListener('click',event=>{const item=event.target.closest('[data-id]');if(item)selectPrimary(item.dataset.id)})
+$('sessionList').addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-id]'))selectPrimary(event.target.dataset.id)})
+$('search').addEventListener('input',renderSessions);$('projectFilter').addEventListener('change',renderSessions)
+document.addEventListener('keydown',event=>{if(event.key==='/'&&!/input|select|textarea/i.test(document.activeElement.tagName)){event.preventDefault();$('search').focus()} if(event.key==='Escape')closeNav()})
+
+function renderSelection(){
+  if(!state.selected.length){$('selection').innerHTML='<span style="color:var(--muted)">未选择会话</span>';return}
+  const primary=state.details[0], canBack=state.trail.length>0||primary?.session?.parentId
+  let html=canBack?'<button class="back-parent" data-back-parent title="返回父会话">← 父会话</button>':''
+  state.selected.forEach((sel,index)=>{ const detail=state.details[index], summary=detail?.session||state.sessions.find(s=>s.id===sel.id), branches=detail?.branches||[]; const opts=branches.map(b=>`<option value="${b.id}"${b.id===(sel.leaf||detail?.selectedLeafId)?' selected':''}>${b.active?'● 当前 · ':''}${esc(b.label||b.preview||b.id)}</option>`).join('');
+    html+=`<div class="lane-chip l${index+1}"><div class="lane-title"><i class="lane-index">${index+1}</i><span>${esc(summary?sessionLabel(summary):'载入中…')}</span></div>${branches.length>1?`<select class="branch-select" data-branch="${index}" title="选择 session 分支">${opts}</select>`:`<div class="branch-select">${esc(summary?.model||'读取 session…')}</div>`}<button class="lane-remove" data-remove="${index}" title="移除">×</button></div>`
+  })
+  if(state.selected.length===1&&primary?.subagents?.length){html+=`<select class="subagent-picker" data-subagent-picker><option value="">⌁ Subagent 轨迹（${primary.subagents.length}）</option>${primary.subagents.map(s=>`<option value="${s.id}">${esc(sessionLabel(s))} · ${s.steps} 步</option>`).join('')}</select>`}
+  $('selection').innerHTML=html
+}
+$('selection').addEventListener('click',event=>{if(event.target.closest('[data-back-parent]')){backToParent();return}const button=event.target.closest('[data-remove]');if(!button)return;state.selected=[];state.details=[];renderSessions();loadView(false)})
+$('selection').addEventListener('change',event=>{const child=event.target.closest('[data-subagent-picker]');if(child?.value){openSubagent(child.value);return}const select=event.target.closest('[data-branch]');if(!select)return;state.selected[+select.dataset.branch].leaf=select.value;loadView(false)})
+function renderSummary(){ if(!state.details.length){$('summarybar').innerHTML='<span>从左侧选择一个 Pi session</span><span class="grow"></span><span class="readonly">不会修改 ~/.pi</span>';return} const summary=state.details[0].session, childCount=state.details[0].subagents?.length||0; $('summarybar').innerHTML=`<span class="metric"><b>${summary.turns}</b> 轮</span><span class="metric"><b>${summary.steps}</b> 主步骤</span><span class="metric"><b>${summary.tools}</b> 次工具</span><span class="metric"><b>${fmtN(summary.totalTokens)}</b> token</span><span class="metric"><b>${fmtMoney(summary.cost)}</b> 成本</span>${childCount?`<span class="metric" style="color:var(--violet)"><b>${childCount}</b> 个 Subagent 轨迹</span>`:''}<span class="grow"></span><span class="readonly">只读解析 · 自动跟随</span>` }
+
+function postMaze(message){ if(!state.frameReady){state.pendingMessage=message;return} $('mazeFrame').contentWindow.postMessage(message,location.origin) }
+window.addEventListener('message',event=>{
+  if(event.origin!==location.origin||event.source!==$('mazeFrame').contentWindow)return
+  if(event.data?.kind==='trace-ready'){
+    state.frameReady=true;applyTheme();if(state.pendingMessage){const msg=state.pendingMessage;state.pendingMessage=null;postMaze(msg)}
+  }else if(event.data?.kind==='open-subagent'&&event.data.sessionId)openSubagent(event.data.sessionId)
+})
+$('mazeFrame').addEventListener('load',()=>{setTimeout(()=>{if(!state.frameReady){state.frameReady=true;if(state.pendingMessage){const msg=state.pendingMessage;state.pendingMessage=null;postMaze(msg)}}},250)})
+function setLoading(mode, message){ const el=$('loading'); if(!mode){el.classList.remove('show');return} el.classList.add('show');el.innerHTML=message?`<div class="error-box">${esc(message)}<br><button id="retryLoad">重试</button></div>`:'<div class="loader"><div class="loader-ring"></div><span>解析 Pi session…</span></div>'; const retry=$('retryLoad');if(retry)retry.onclick=()=>loadView(false) }
+async function loadView(follow){
+  const viewSeq=++state.viewSeq, foreground=!follow||!state.details.length
+  updateUrl();renderSelection(); if(!state.selected.length){state.details=[];$('emptyState').style.display='grid';setLoading(false);renderSelection();renderSummary();return}
+  $('emptyState').style.display='none';if(foreground)setLoading(true)
+  try{ const details=await Promise.all(state.selected.map(async sel=>{const params=new URLSearchParams({id:sel.id});if(sel.leaf)params.set('leaf',sel.leaf);const response=await fetch('/api/session?'+params);const body=await response.json();if(!response.ok)throw new Error(body.error||'加载失败');return body})); if(viewSeq!==state.viewSeq)return; state.details=details; details.forEach((detail,index)=>{state.selected[index].leaf=detail.selectedLeafId});
+    const data=details[0].data, childStamp=(details[0].subagents||[]).map(s=>s.modifiedAt).join(','); const key=state.selected[0].id+':'+state.selected[0].leaf+':'+details[0].session.modifiedAt+':'+childStamp; postMaze({kind:'trace-maze',data,key,follow});renderSelection();renderSummary();renderSessions();setLoading(false)
+  }catch(error){if(viewSeq!==state.viewSeq)return;console.error(error);if(foreground)setLoading(true,error.message||String(error));else toast('后台刷新失败，保留当前视图')}
+}
+
+async function refreshSessions(options={}){ if(state.refreshing)return;state.refreshing=true;if(!options.silent)$('refreshList').classList.add('spin');try{ const old=new Map(state.sessions.map(s=>[s.id,s.modifiedAt]));const response=await fetch('/api/sessions');const data=await response.json();if(!response.ok)throw new Error(data.error||'扫描失败');state.sessions=data.sessions;state.sessionsRoot=data.sessionsRoot;$('sessionsRoot').textContent=data.sessionsRoot;$('sessionsRoot').title=data.sessionsRoot;$('sessionCount').textContent=state.sessions.filter(s=>s.parentId==null).length;$('sessionCount').title=`${data.total} 个文件（含 Subagent）`;setConnected(true);renderProjectFilter();
+    if(!state.selected.length){const params=new URLSearchParams(location.search),ids=(params.get('sessions')||'').split(',').filter(Boolean),leaves=(params.get('leaves')||'').split(',');state.selected=ids.filter(id=>state.sessions.some(s=>s.id===id&&!s.error)).slice(0,1).map((id,i)=>({id,leaf:leaves[i]||null}));if(!state.selected.length){const first=state.sessions.find(s=>!s.error&&s.parentId==null);if(first)state.selected=[{id:first.id,leaf:null}]}}
+    renderSessions();renderSelection(); if(!options.silent)await loadView(false);else{const selectedIds=new Set(state.selected.map(s=>s.id)),watched=state.sessions.filter(s=>selectedIds.has(s.id)||selectedIds.has(s.parentId));if(watched.some(s=>old.get(s.id)!==s.modifiedAt))await loadView(true)}
+  }catch(error){setConnected(false);console.error(error);if(!options.silent){$('sessionList').innerHTML=`<div class="error-box" style="margin:12px">${esc(error.message||error)}</div>`;toast('无法读取 Pi sessions')}}finally{state.refreshing=false;if(!options.silent)$('refreshList').classList.remove('spin')} }
+$('refreshList').addEventListener('click',()=>refreshSessions());$('refreshView').addEventListener('click',()=>loadView(true));$('autoRefresh').addEventListener('click',()=>{state.auto=!state.auto;$('autoRefresh').classList.toggle('on',state.auto);toast(state.auto?'已开启自动刷新':'已暂停自动刷新')})
+setInterval(()=>{if(state.auto)refreshSessions({silent:true})},10000)
+function closeNav(){document.body.classList.remove('nav-open')}$('mobileMenu').addEventListener('click',()=>document.body.classList.add('nav-open'));$('backdrop').addEventListener('click',closeNav)
+initTheme();renderSelection();refreshSessions()
+</script>
+</body>
+</html>

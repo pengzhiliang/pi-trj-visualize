@@ -1,0 +1,121 @@
+import { expect, test } from '@playwright/test'
+
+test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(`pageerror: ${error.message}`))
+  page.on('console', message => { if (message.type() === 'error') errors.push(`console: ${message.text()}`) })
+
+  await page.goto('/')
+  await expect(page.locator('.session')).not.toHaveCount(0)
+  await page.locator('.session').filter({ hasText: '修复登录重定向' }).click()
+  await expect(page.locator('.lane-chip.l1')).toBeVisible()
+  await expect(page.locator('#loading')).not.toHaveClass(/show/)
+
+  const maze = page.frameLocator('#mazeFrame')
+  await expect(maze.locator('#svgwrap')).toBeVisible()
+  await expect(maze.locator('.node').first()).toBeVisible()
+  const frameBox = await page.locator('#mazeFrame').boundingBox()
+  expect(frameBox).not.toBeNull()
+  expect(frameBox!.height).toBeLessThan(800)
+
+  const firstBar = maze.locator('.node .nbar').first()
+  await firstBar.hover()
+  await expect(maze.locator('#tip')).toBeVisible()
+  await maze.locator('#tip').hover()
+  await page.waitForTimeout(650)
+  await expect(maze.locator('#tip')).toBeVisible()
+
+  await firstBar.click()
+  await expect(maze.locator('#panel')).toHaveClass(/show/)
+  await expect(maze.locator('#panelBody')).toContainText(/时段|Token/)
+  await maze.locator('#panelClose').click()
+
+  // Parent and child trajectory share one wall-clock canvas with distinct colors.
+  await expect(maze.locator('.lane-name')).toHaveCount(2)
+  await expect(maze.locator('.lane-name').nth(1)).toContainText('Explore#child123')
+  expect(Number(await maze.locator('.subagent-band').getAttribute('width'))).toBeLessThan(600)
+  await expect(maze.locator('.detour-chain')).toHaveCount(2)
+  await expect(maze.locator('.recovery-path')).toHaveCount(1)
+  const canvasScroll = maze.locator('#svgscroll')
+  const canvasSize = await canvasScroll.evaluate(element => ({ client: element.clientHeight, scroll: element.scrollHeight }))
+  const svgBox = await maze.locator('#svg').boundingBox()
+  expect(svgBox!.width).toBeGreaterThan(900)
+  if (canvasSize.scroll > canvasSize.client) {
+    await maze.locator('#svg').hover()
+    await page.mouse.wheel(0, 500)
+    await expect.poll(() => canvasScroll.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+    await canvasScroll.evaluate(element => { element.scrollTop = 0 })
+  }
+
+  const allNodes = maze.locator('.node')
+  let errorIndex = -1
+  for (let index = 0; index < await allNodes.count(); index += 1) {
+    if (await allNodes.nth(index).evaluate(element => element._node?.v === 'error')) { errorIndex = index; break }
+  }
+  expect(errorIndex).toBeGreaterThanOrEqual(0)
+  const imageBadge = allNodes.nth(errorIndex).locator('.image-badge')
+  await expect(imageBadge).toBeVisible()
+  await imageBadge.click()
+  await expect(maze.locator('#panelBody')).toContainText('此步骤包含 1 张图片')
+  const panelBody = maze.locator('#panelBody')
+  await expect(panelBody.locator('.pimages img')).toBeVisible()
+  await expect(panelBody.locator('.pimages img')).toHaveAttribute('src', /^data:image\/png;base64,/)
+  const panelSize = await panelBody.evaluate(element => ({ client: element.clientHeight, scroll: element.scrollHeight }))
+  expect(panelSize.scroll).toBeGreaterThan(panelSize.client)
+  await panelBody.hover()
+  await page.mouse.wheel(0, 600)
+  await expect.poll(() => panelBody.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+  await maze.locator('#panelClose').click()
+
+  await maze.locator('#fltQIn').fill('pnpm')
+  await expect(maze.locator('#fltCount')).toContainText('命中')
+  await maze.locator('#fltQIn').fill('')
+
+  const downloadPromise = page.waitForEvent('download')
+  await maze.locator('#btnExpSvg').click()
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toMatch(/trace-maze-.*\.svg/)
+
+  await page.locator('#themeToggle').click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', /light|dark/)
+  await page.waitForTimeout(250)
+  await page.screenshot({ path: 'test-results/pi-trj-visualize.png' })
+
+  expect(errors).toEqual([])
+})
+
+test('opens a linked Subagent trajectory from its parent Agent step', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.session')).toHaveCount(2)
+  await page.locator('.session').filter({ hasText: '修复登录重定向' }).click()
+  await expect(page.locator('[data-subagent-picker]')).toBeVisible()
+
+  const maze = page.frameLocator('#mazeFrame')
+  await expect(maze.locator('.node').first()).toBeVisible()
+  const nodes = maze.locator('.node')
+  let linkedIndex = -1
+  for (let index = 0; index < await nodes.count(); index += 1) {
+    if (await nodes.nth(index).evaluate(element => element._node?.tools?.some(tool => tool.linkedSessionId))) { linkedIndex = index; break }
+  }
+  expect(linkedIndex).toBeGreaterThanOrEqual(0)
+  await nodes.nth(linkedIndex).locator('.nbar').first().click()
+  await expect(maze.locator('[data-open-subagent]')).toContainText('打开 Explore#child123 轨迹')
+  await maze.locator('[data-open-subagent]').click()
+
+  await expect(page.locator('.lane-title')).toContainText('Explore#child123')
+  await expect(page.locator('[data-back-parent]')).toBeVisible()
+  await expect(maze.locator('.lane-name')).toContainText('Explore#child123')
+  await page.locator('[data-back-parent]').click()
+  await expect(page.locator('.lane-title')).toContainText('修复登录重定向')
+})
+
+test('opens the session drawer on a narrow viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 820 })
+  await page.goto('/')
+  await expect(page.locator('#mobileMenu')).toBeVisible()
+  await page.locator('#mobileMenu').click()
+  await expect(page.locator('body')).toHaveClass(/nav-open/)
+  await expect(page.locator('.session').first()).toBeVisible()
+  await page.locator('#backdrop').click({ position: { x: 680, y: 400 } })
+  await expect(page.locator('body')).not.toHaveClass(/nav-open/)
+})

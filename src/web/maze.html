@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pi Trj Visualize · 迷宫时间线</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --panel2:#f6f8fb; --line:#e4e7ee; --txt:#1f2937; --dim:#7a869e;
+    --llm:#2563eb; --bash:#0f9488; --grep:#7c3aed; --read:#059669; --web:#d97706; --other:#0891b2;
+    --err:#dc2626; --dead:#9aa4b8; --retry:#8892a6; --ans:#16a34a; --main-f:#2563eb;
+    --milestone:#d97706; --anchor:#0e7490;
+    --hover:#eef1f6; --sel:#e0ebff; --border:#d8dce6; --codebg:#fbfcfe; --code:#374151;
+    --grid:#eceff4; --seam:#eef1f6; --seam-edge:#c7cedb; --seam-txt:#b45309;
+    --turnsep:#94a3b8; --turnsep-txt:#64748b; --backarc:#9aa4b8;
+    --nlabel:#46536a; --tick:#9aa4b8; --tick-big:#5b6b85; --nodeline:#ffffff; --hl:#1f2937;
+  }
+  /* 暗色主题：宿主经 postMessage {kind:'trace-theme'} 切换（iframe srcDoc 读不到宿主 DOM）。
+     导出的 SVG/PNG 固定浅色底：导出前临时切回浅色重建（分享场景）。 */
+  :root[data-theme="dark"]{
+    --bg:#0f141b; --panel:#171e29; --panel2:#1c2532; --line:#2b3444; --txt:#dce3ef; --dim:#93a0b6;
+    --err:#ef5350; --dead:#7f8ca3; --retry:#9aa8c0; --ans:#2eb85c; --main-f:#5b8ef7;
+    --milestone:#e8a13c; --anchor:#3cc5dd;
+    --hover:#232e40; --sel:#2a3b58; --border:#3b4759; --codebg:#131a24; --code:#c3cddd;
+    --grid:#222b39; --seam:#1a2230; --seam-edge:#39455a; --seam-txt:#e0a35c;
+    --turnsep:#5d6b82; --turnsep-txt:#8b99b0; --backarc:#7f8ca3;
+    --nlabel:#aab6ca; --tick:#77839a; --tick-big:#93a0b6; --nodeline:#0f141b; --hl:#f2f6ff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%}
+  body{background:var(--bg); color:var(--txt); font:13px/1.6 "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; padding:20px 24px 16px; display:flex; flex-direction:column; overflow:hidden}
+  body > :not(#svgwrap){flex-shrink:0}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin:8px 0; color:var(--dim); font-size:12px}
+  .lg{display:inline-flex; align-items:center; gap:5px}
+  .ln{width:20px; height:0; border-top:2px solid #fff; display:inline-block}
+  .ln.dt{border-color:var(--dead); border-top-style:dashed}
+  .ln.bk{border-color:#9aa4b8; border-top-style:dotted}
+  .sw{width:14px; height:10px; border-radius:2px; display:inline-block}
+  .sw.er{background:var(--err)} .sw.de{background:var(--dead)} .sw.rt{background:var(--retry)} .sw.an{background:var(--ans)}
+  .flt-dim{opacity:.15 !important}
+  #fltbar .fltlab{display:flex; align-items:center; gap:4px; white-space:nowrap}
+  #fltbar input[type="search"]{flex:0 1 260px; min-width:120px; padding:4px 8px; border:1px solid var(--line); border-radius:6px; font:inherit; background:var(--panel); color:var(--txt)}
+  #fltbar #fltCount{color:var(--dim); white-space:nowrap}
+  .controls{display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 12px; margin-bottom:8px; position:sticky; top:0; z-index:50; box-shadow:0 1px 3px rgba(16,24,40,.05)}
+  .controls button{background:var(--panel); color:var(--txt); border:1px solid var(--border); border-radius:8px; padding:4px 14px; font-size:13px; cursor:pointer; transition:background .15s}
+  .controls button:hover{background:var(--hover)}
+  .controls select{background:var(--panel); color:var(--txt); border:1px solid var(--border); border-radius:8px; padding:3px 6px}
+  #curTime{font-variant-numeric:tabular-nums; min-width:70px; color:var(--main-f); font-weight:600}
+  #seek{flex:1}
+  .svgwrap{overflow:hidden; flex:1 1 0; min-height:120px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:0 1px 4px rgba(16,24,40,.05); position:relative}
+  #svgscroll{position:absolute; inset:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--line) transparent}
+  #svg{width:100%; height:auto; min-height:100%; display:block; cursor:grab}
+  #svg.panning{cursor:grabbing}
+  /* 固定详情面板：盖在 svgwrap 右侧，点节点/支路打开 */
+  #panel{position:absolute; top:0; right:0; bottom:0; width:410px; max-width:78%; background:var(--panel); border-left:1px solid var(--line); box-shadow:-8px 0 24px rgba(16,24,40,.10); display:none; flex-direction:column; z-index:60}
+  #panel.show{display:flex}
+  #panel .ph{display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); flex-shrink:0}
+  #panel .ph b{font-size:13.5px; color:var(--txt)}
+  #panel .vchip{font-size:11px; font-weight:700; border-radius:6px; padding:1px 8px; color:#fff}
+  #panel .pclose{margin-left:auto; cursor:pointer; border:none; background:none; color:#9aa4b8; font-size:17px; font-weight:700; padding:0 4px; line-height:1}
+  #panel .pclose:hover{color:#dc2626}
+  #panel .pbody{overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; touch-action:pan-y; padding:10px 12px 14px; font-size:12px; flex:1; min-height:0; user-select:text}
+  #panel .prow{color:var(--dim); margin-bottom:6px}
+  #panel .psec{margin-top:10px; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  #panel .psec .pt{display:flex; align-items:center; gap:8px; background:var(--panel2); padding:5px 9px; font-weight:600; color:var(--txt)}
+  #panel .psec .pt .cp{margin-left:auto}
+  /* One vertical scroller per panel: nested <pre> scrollbars made wheel input
+     appear stuck and prevented reaching later tool calls. */
+  #panel pre{white-space:pre-wrap; word-break:break-all; font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--code); padding:7px 9px; margin:0; max-height:none; overflow:visible; user-select:text}
+  #panel pre.args{background:var(--codebg); border-bottom:1px solid var(--line); max-height:none}
+  #panel .pwhy{padding:4px 10px; color:var(--dim); font-size:11px; border-bottom:1px solid var(--line)}
+  .pimages{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; padding:8px 9px}
+  .pimages img{display:block; max-width:100%; max-height:420px; object-fit:contain; border:1px solid var(--line); border-radius:7px; background:var(--codebg); cursor:zoom-in}
+  .pimages img.full-image{grid-column:1/-1; max-height:none; width:auto; cursor:zoom-out}
+  #tip .pimages{grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); padding:6px 0}
+  #tip .pimages img{max-height:180px}
+  #panel .cp{border:1px solid var(--border); background:var(--panel); border-radius:6px; font-size:11px; color:var(--txt); cursor:pointer; padding:1px 8px}
+  #panel .cp:hover{background:var(--hover)}
+  #panel .subagent-open{border-color:var(--anchor); color:var(--anchor); font-weight:700; margin-left:auto}
+  #panel .subagent-open + .cp{margin-left:0}
+  #panel .rzfull{color:var(--dim); background:var(--codebg); border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-top:10px; max-height:none; overflow:visible; user-select:text}
+  .zoomhint{color:var(--dim); font-size:11px; opacity:.6}
+  svg text{font-family:"PingFang SC","Hiragino Sans GB",sans-serif}
+  .node{cursor:pointer}
+  .node .nbar{stroke:var(--nodeline); stroke-width:1.2}
+  .node .subbar{stroke-width:.8}
+  .nlabel{font-size:11px; fill:var(--nlabel); pointer-events:none; font-weight:600}
+  .dur-label{font-size:9.5px; fill:var(--tick); pointer-events:none}
+  .node-icon{pointer-events:none}
+  .image-badge{pointer-events:auto; cursor:pointer}
+  .image-badge text{font-size:8.5px; font-weight:800; fill:#fff; pointer-events:none}
+  .back-label{font-size:12px; fill:var(--backarc); pointer-events:none}
+  .seg-label{font-size:10.5px; font-weight:700; pointer-events:none}
+  .hl-path{stroke-width:4.5!important; filter:drop-shadow(0 0 3px rgba(16,24,40,.18))}
+  .hl-node .nbar{stroke:var(--hl)!important; stroke-width:2.5!important}
+  .hl-node .nlabel{fill:var(--hl)!important}
+  .lane-name{font-size:14px; font-weight:700}
+  .lane-info{font-size:11px; fill:var(--dim); font-weight:500}
+  .tick{font-size:10px; fill:var(--tick)}
+  .tick.big{fill:var(--tick-big)}
+  .mk-flag{font-size:12px}
+  .deadX{font-size:13px; font-weight:700}
+  #tip{position:fixed; z-index:100; max-width:600px; max-height:min(360px,70vh); overflow:auto; overscroll-behavior:contain; touch-action:pan-y; pointer-events:auto; user-select:text; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:11.5px; display:none; box-shadow:0 8px 28px rgba(16,24,40,.14)}
+  #tip .th{color:var(--main-f); font-weight:600; margin-bottom:4px}
+  #tip pre{white-space:pre-wrap; word-break:break-all; color:var(--code); font-family:ui-monospace,Menlo,monospace; font-size:11px}
+  #tip .rs{margin-top:5px; color:var(--dim)}
+  #tip .back{margin-top:4px; color:#d97706}
+  .errbar{background:#fef2f2; border:1px solid #fca5a5; color:#b91c1c; border-radius:10px; padding:10px 14px; margin:10px 0; font-size:12.5px; display:none}
+  /* Live (embedded tab) mode: page chrome off, everything tight — the lane band already carries the stats. */
+  body.live{padding:4px 8px 8px}
+  body.live .errbar{display:none!important}
+  body.live .legend{margin:2px 0 4px; font-size:11px; gap:10px}
+  body.live .controls{margin-bottom:4px; padding:4px 10px}
+</style>
+</head>
+<body class="live">
+<div class="errbar" id="errbar"></div>
+<div class="legend" id="legend" style="display:none"></div>
+
+<div class="controls" id="controls" style="display:none">
+  <button id="btnPlay">▶ 播放</button>
+  <button id="btnReset">⟲</button>
+  <select id="speed">
+    <option value="1">1×</option><option value="5">5×</option>
+    <option value="10">10×</option><option value="25" selected>25×</option>
+    <option value="50">50×</option><option value="100">100×</option>
+    <option value="300">300×</option>
+  </select>
+  <span id="curTime">0.0s</span>
+  <input type="range" id="seek" min="0" max="1000" value="0">
+  <button id="btnFit" title="复位缩放（双击空白处同效）">⤢ 整图</button>
+  <span class="zoomhint">滚轮纵向浏览 · Ctrl/⌘+滚轮缩放 · 拖拽平移</span>
+</div>
+
+<div class="controls" id="fltbar" style="display:none">
+  <label class="fltlab"><input type="checkbox" id="fltFail"> 只看失败/重试</label>
+  <select id="fltToolSel"><option value="">全部工具</option></select>
+  <input type="search" id="fltQIn" placeholder="搜索命令与返回内容…">
+  <span id="fltCount"></span>
+  <span style="flex:1"></span>
+  <button id="btnExpSvg" title="导出当前视图为 SVG">⬇ SVG</button>
+  <button id="btnExpPng" title="导出当前视图为 PNG（2x）">⬇ PNG</button>
+</div>
+
+<div class="svgwrap" id="svgwrap" style="display:none">
+<div id="svgscroll"><svg id="svg" viewBox="0 0 1560 1150" preserveAspectRatio="xMidYMin meet"></svg></div>
+<div id="panel">
+  <div class="ph"><b id="panelTitle"></b><span class="vchip" id="panelChip"></span><button class="pclose" id="panelClose" title="关闭（Esc）">×</button></div>
+  <div class="pbody" id="panelBody"></div>
+</div>
+</div>
+<div id="tip"></div>
+
+<script>
+'use strict'
+
+/** Format seconds for axis/stat labels: 49252 → "13.7h", 340 → "6m", 42.5 → "42.5s". */
+function fmtT(t){
+  if (t >= 3600) return (t / 3600).toFixed(t >= 36000 ? 0 : 1) + 'h'
+  if (t >= 120) return Math.round(t / 60) + 'm'
+  return (Math.round(t * 10) / 10) + 's'
+}
+
+/** 步级推理量标签：有 usage 真值用 token，否则诚实按流式段数计（旧标签把段数冒充 token）。 */
+function rzLabel(n){
+  return n.rzTok != null ? '推理 ' + n.rzTok.toLocaleString() + ' tok' : n.rz + ' 段推理'
+}
+
+/** 泳道级推理/输出量标签，同上口径。 */
+function laneTokLabel(st){
+  const parts = []
+  if (st.inputTok > 0) parts.push('输入 ' + st.inputTok.toLocaleString() + ' tok')
+  if (st.outTok != null) parts.push('输出 ' + st.outTok.toLocaleString() + ' tok')
+  if (st.rzTok != null) parts.push('推理 ' + st.rzTok.toLocaleString() + ' tok')
+  else if (st.rz > 0) parts.push(st.rz.toLocaleString() + ' 段推理')
+  if (st.cacheReadTok > 0) parts.push('缓存 ' + st.cacheReadTok.toLocaleString())
+  if (st.cost > 0) parts.push('$' + (st.cost < .01 ? st.cost.toFixed(4) : st.cost.toFixed(2)))
+  return parts.length ? parts.join(' · ') : '无 token 用量'
+}
+
+/** Axis tick interval keeping ≤50 gridlines for any span (sub-minute steps serve zoomed-in windows). */
+function tickStep(T){
+  for (const s of [1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600, 7200, 14400, 43200]){
+    if (T / s <= 50) return s
+  }
+  return 86400
+}
+
+/* ==================== 空闲折叠：对话间等待压成细缝 ==================== */
+const IDLE_MIN = 60   // 无活动超过此秒数的区间视为等待，折叠显示
+
+/**
+ * Collapse idle stretches (no step/tool activity in any lane) into thin seams.
+ * Mutates node/tool times into compressed coordinates, sets data.Tmax to the
+ * compressed span, and attaches data.timeMap { segments, gaps, seam } for the
+ * axis and for wall-clock display. Durations and stats stay wall-clock.
+ */
+function compressTimeline(data){
+  const iv = []
+  for (const l of data.lanes){
+    for (const arr of [l.main, l.detours]){
+      for (const n of arr){
+        iv.push([n.s, Math.max(n.e, n.s)])
+        for (const tl of n.tools ?? []){
+          if (tl.s != null) iv.push([tl.s, Math.max(tl.e ?? tl.s, tl.s)])
+        }
+      }
+    }
+  }
+  data.timeMap = null
+  if (iv.length === 0) return
+  iv.sort((a, b) => a[0] - b[0])
+  const act = []
+  for (const [s, e] of iv){
+    const last = act[act.length - 1]
+    if (last && s <= last[1] + IDLE_MIN) last[1] = Math.max(last[1], e)
+    else act.push([s, e])
+  }
+  if (act.length <= 1) return
+  const active = act.reduce((n, [s, e]) => n + (e - s), 0)
+  const seam = Math.min(30, Math.max(1, Math.round(active * 0.015 * 10) / 10))
+  const segments = []
+  const gaps = []
+  let c = Math.min(act[0][0], IDLE_MIN)
+  for (let i = 0; i < act.length; i++){
+    const [rs, re] = act[i]
+    segments.push({ rs, re, cs: c })
+    c += re - rs
+    if (i < act.length - 1){
+      gaps.push({ c, skipped: act[i + 1][0] - re })
+      c += seam
+    }
+  }
+  const map = t => {
+    if (t <= segments[0].rs) return segments[0].cs - (segments[0].rs - t)
+    for (let i = segments.length - 1; i >= 0; i--){
+      const g = segments[i]
+      if (t < g.rs) continue
+      if (t <= g.re) return g.cs + (t - g.rs)
+      const next = segments[i + 1]
+      const gapLen = next ? next.rs - g.re : 1
+      return g.cs + (g.re - g.rs) + Math.min(1, (t - g.re) / gapLen) * seam
+    }
+    return t
+  }
+  const seen = new Set()
+  const remap = n => {
+    if (seen.has(n)) return
+    seen.add(n)
+    n.s = map(n.s)
+    n.e = map(n.e)
+    for (const tl of n.tools ?? []){
+      if (seen.has(tl)) continue
+      seen.add(tl)
+      if (tl.s != null) tl.s = map(tl.s)
+      if (tl.e != null) tl.e = map(tl.e)
+    }
+  }
+  for (const l of data.lanes){
+    l.main.forEach(remap)
+    l.detours.forEach(remap)
+  }
+  data.Tmax = Math.max(c, 60)
+  data.timeMap = { segments, gaps, seam }
+}
+
+/** Compressed time → wall-clock seconds (for the playback clock). */
+function wallClock(t){
+  if (!DATA || !DATA.timeMap) return t
+  const segs = DATA.timeMap.segments
+  for (let i = segs.length - 1; i >= 0; i--){
+    const g = segs[i]
+    if (t >= g.cs) return Math.min(g.re, g.rs + (t - g.cs))
+  }
+  return t
+}
+
+/* ============================ 布局 ============================ */
+const X0 = 56, AXIS_W = 1500
+// 缩放窗口：VIEW=null 显示整图；否则 [t0,t1]（折叠后坐标）。x() 把时间映射进当前窗口。
+let VIEW = null
+const viewT0 = () => VIEW ? VIEW.t0 : 0
+const viewSpan = () => VIEW ? VIEW.t1 - VIEW.t0 : TMAX
+const x = t => X0 + (t - viewT0()) / viewSpan() * AXIS_W
+let TMAX = 460
+let LAYOUT = {}
+let LANE_GAP = 40
+
+function detourGroups(lane){
+  const groups = [], byAttach = new Map()
+  for (const detour of [...lane.detours].sort((a, b) => a.s - b.s)){
+    const key = detour.attach ?? 0
+    let group = byAttach.get(key)
+    if (!group){ group = []; byAttach.set(key, group); groups.push(group) }
+    group.push(detour)
+  }
+  return groups
+}
+
+function computeLayout(lanes){
+  // Consecutive failures after the same successful checkpoint share one row;
+  // they are one chronological exploration chain, not independent branches.
+  // mainY sits below the band header plus all up-detour lanes, regionBottom
+  // clears all down-detour lanes, and the next lane starts below that.
+  // parH reserves the parallel-tool sub-bar zone directly under the main path
+  // (one 9px row per concurrent call); down-detour lanes and below-row labels
+  // shift past it.
+  const layout = {}
+  let regionTop = 34
+  lanes.forEach(l => {
+    const groupCount = detourGroups(l).length
+    const up = Math.ceil(groupCount / 2)
+    const down = Math.floor(groupCount / 2)
+    const maxPar = Math.max(0, ...l.main.map(n => n.tools.length >= 2 ? n.tools.length : 0))
+    const parH = maxPar > 0 ? maxPar * 9 + 8 : 0
+    const mainY = regionTop + 34 + up * LANE_GAP + 48
+    const regionBottom = mainY + parH + down * LANE_GAP + 58
+    layout[l.key] = { top: regionTop + 24, mainY, up, down, parH, regionTop, regionBottom }
+    regionTop = regionBottom + 66
+  })
+  return layout
+}
+
+/* ============================ 渲染 ============================ */
+const svg = document.getElementById('svg')
+const NS = 'http://www.w3.org/2000/svg'
+const MAIN_COLOR = { l1: '#2563eb' }
+const VCOLOR = { error: '#dc2626', deadend: '#9aa4b8', retry: '#8892a6', ok: '#16a34a', answer: '#16a34a' }
+
+/* ==================== 主题：CSS 变量单真相源，SVG 属性色经 readPalette 取值 ==================== */
+let THEME = 'light'
+const SVGC = {}   // build 期使用的 SVG 属性色（文本 fill 走 CSS 类，不经此处）
+
+/** 从当前主题的 CSS 变量读入全部 SVG 属性色（含 MAIN_COLOR/VCOLOR），build 前调用。 */
+function readPalette(){
+  const cs = getComputedStyle(document.documentElement)
+  const v = n => cs.getPropertyValue(n).trim()
+  MAIN_COLOR.l1 = v('--main-f')
+  VCOLOR.error = v('--err'); VCOLOR.deadend = v('--dead'); VCOLOR.retry = v('--retry')
+  VCOLOR.ok = v('--ans'); VCOLOR.answer = v('--ans')
+  SVGC.grid = v('--grid'); SVGC.seam = v('--seam'); SVGC.seamEdge = v('--seam-edge'); SVGC.seamTxt = v('--seam-txt')
+  SVGC.turnSep = v('--turnsep'); SVGC.turnSepTxt = v('--turnsep-txt'); SVGC.back = v('--backarc')
+  SVGC.milestone = v('--milestone')
+}
+
+/**
+ * 切换主题：置根元素 data-theme + colorScheme（原生控件跟随），重读调色板并全量重建。
+ * mode 非 'dark' 一律按 'light'；force 用于导出时的临时切换（同值也重建）。
+ */
+function setTheme(mode, force){
+  mode = mode === 'dark' ? 'dark' : 'light'
+  if (mode === THEME && !force) return
+  THEME = mode
+  if (mode === 'dark') document.documentElement.setAttribute('data-theme', 'dark')
+  else document.documentElement.removeAttribute('data-theme')
+  document.documentElement.style.colorScheme = mode
+  readPalette()
+  if (DATA){ build(); render() }
+}
+const TOOL_LABEL = { bash: 'bash', grep: 'grep', read: 'read', web_search: 'web', python3: 'python', curl: 'curl' }
+const tlabel = n => TOOL_LABEL[n] ?? n
+const vlabel = v => ({ error: '失败 ✗', deadend: '扑空 ·', retry: '无效重试 ↻', ok: '成功', answer: '回答' }[v] ?? v)
+const laneName = lane => lane.title ?? (lane.role === 'subagent' ? 'Subagent' : '主会话')
+function laneColor(lane, index = 0){
+  if (lane.role === 'subagent') return lane.color ?? ['#0891b2','#d97706','#db2777','#4f46e5','#65a30d'][index % 5]
+  return MAIN_COLOR.l1
+}
+function colorAlpha(color, alpha){
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color)
+  return m ? `rgba(${parseInt(m[1],16)},${parseInt(m[2],16)},${parseInt(m[3],16)},${alpha})` : color
+}
+
+/** Rebuild the legend from the parent and inline Subagent lanes. */
+function renderLegend(){
+  const lg = []
+  DATA.lanes.forEach((lane, index) => {
+    const kind = lane.role === 'subagent' ? 'Subagent' : '主会话'
+    lg.push(`<span class="lg"><span class="ln" style="border-color:${laneColor(lane,index)}"></span>${kind} · ${esc(laneName(lane))}</span>`)
+  })
+  lg.push('<span class="lg" title="按真实先后连接的失败尝试"><span class="ln dt"></span>连续失败链</span>')
+  lg.push('<span class="lg" title="最后一次失败后重新回到成功主干"><span class="ln bk"></span>恢复主干</span>')
+  lg.push('<span class="lg"><span class="sw er"></span>失败 ✗</span>')
+  lg.push('<span class="lg" title="检索无结果"><span class="sw de"></span>扑空 ·</span>')
+  lg.push('<span class="lg"><span class="sw rt"></span>无效重试 ↻</span>')
+  lg.push('<span class="lg"><span class="sw an"></span>最终回答</span>')
+  if (DATA.timeMap) lg.push('<span class="lg">⏸ 空闲已折叠</span>')
+
+  document.getElementById('legend').innerHTML = lg.join('')
+}
+
+function el(name, attrs){
+  const n = document.createElementNS(NS, name)
+  for (const k in attrs) n.setAttribute(k, attrs[k])
+  return n
+}
+
+const pathEls = []
+const nodeEls = []
+const markEls = []
+const labRows = {}
+const wEst = s => s.length * 6.2 + 6
+
+function assignLanes(lane){
+  let up = 0, down = 0
+  detourGroups(lane).forEach((group, index) => {
+    const track = index % 2 === 0 ? ++up : -++down
+    group.forEach((detour, position) => {
+      detour._lane = track
+      detour._groupPosition = position
+      detour._groupSize = group.length
+      // Positive tracks sit below the parallel-tool waterfall.
+      detour._y = LAYOUT[lane.key].mainY + track * LANE_GAP + (track > 0 ? LAYOUT[lane.key].parH : 0)
+    })
+  })
+}
+
+/** Element horizontal-visibility cull for the zoom window (generous margin keeps arcs whole). */
+const xVisible = (s, e) => x(Math.max(e, s)) >= X0 - 60 && x(Math.min(s, e)) <= X0 + AXIS_W + 60
+
+function build(){
+  while (svg.firstChild) svg.removeChild(svg.firstChild)
+  pathEls.length = 0; nodeEls.length = 0; markEls.length = 0
+  for (const k of Object.keys(labRows)) delete labRows[k]
+  svg.setAttribute('viewBox', `0 0 1560 ${DATA.viewH}`)
+
+  const defs = el('defs', {})
+  defs.appendChild(el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }))
+      .appendChild(el('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: SVGC.back }))
+  defs.appendChild(el('clipPath', { id: 'clipTime' }))
+      .appendChild(el('rect', { x: X0 - 14, y: 0, width: AXIS_W + 28, height: DATA.viewH }))
+  svg.appendChild(defs)
+
+  // Paint order: clipped tick layer under the static lane chrome, clipped time
+  // content above it — zoomed-out-of-window geometry can never smear the page.
+  const gTicks = svg.appendChild(el('g', { 'clip-path': 'url(#clipTime)' }))
+  const gStatic = svg.appendChild(el('g', {}))
+  const gTime = svg.appendChild(el('g', { 'clip-path': 'url(#clipTime)' }))
+
+  // Connect each parent Agent call to the child trajectory's aligned lane.
+  const parentLane = DATA.lanes.find(lane => lane.role !== 'subagent')
+  if (parentLane){
+    for (let index = 0; index < DATA.lanes.length; index++){
+      const child = DATA.lanes[index]
+      if (child.role !== 'subagent' || !child.parentCallId) continue
+      const source = [...parentLane.main, ...parentLane.detours].find(node => node.tools.some(tool => tool.callId === child.parentCallId))
+      const sourceTool = source?.tools.find(tool => tool.callId === child.parentCallId)
+      const target = [...child.main, ...child.detours].sort((a, b) => a.s - b.s)[0]
+      if (!source || !sourceTool || !target || !xVisible(sourceTool.s, target.s)) continue
+      const color = laneColor(child, index)
+      const sx = x(sourceTool.s), tx = x(target.s), sy = LAYOUT[parentLane.key].mainY, ty = LAYOUT[child.key].mainY
+      const link = el('path', { d: `M ${sx} ${sy} C ${sx + 22} ${(sy + ty) / 2}, ${tx - 22} ${(sy + ty) / 2}, ${tx} ${ty}`, fill: 'none', stroke: color, 'stroke-width': 1.8, 'stroke-dasharray': '4 4', opacity: 0.8 })
+      gTime.appendChild(link)
+      pathEls.push({ el: link, s: sourceTool.s, e: Math.max(target.s, sourceTool.s + 0.1), base: '4 4' })
+      const label = el('text', { x: (sx + tx) / 2 + 6, y: (sy + ty) / 2 - 5, class: 'seg-label', fill: color })
+      label.textContent = '⌁ ' + laneName(child)
+      gTime.appendChild(label)
+      markEls.push({ el: label, s: sourceTool.s, e: Math.max(target.s, sourceTool.s + 0.5) })
+    }
+  }
+
+  const TS = tickStep(viewSpan())
+  // Sub-minute tick steps need second precision: fmtT alone renders every
+  // deep-zoom label as the same "3m".
+  const tickLab = TS < 60
+    ? rt => rt >= 120 ? Math.floor(rt / 60) + 'm' + String(Math.round(rt % 60)).padStart(2, '0') + 's' : fmtT(rt)
+    : fmtT
+  const drawTick = (cx, label, big) => {
+    if (cx < X0 - 20 || cx > X0 + AXIS_W + 20) return
+    const g = el('g', {})
+    g.appendChild(el('line', { x1: cx, y1: 0, x2: cx, y2: DATA.viewH, stroke: SVGC.grid, 'stroke-width': big ? 1 : 0.5 }))
+    // Fine steps label only the big ticks: "12m14s"-wide labels on every tick overlap.
+    if (TS >= 60 || big){
+      const tx = el('text', { x: cx, y: 14, 'text-anchor': 'middle', class: big ? 'tick big' : 'tick' })
+      tx.textContent = label
+      g.appendChild(tx)
+    }
+    gTicks.appendChild(g)
+  }
+  if (DATA.timeMap){
+    // Ticks live inside activity segments and carry wall-clock labels; each
+    // collapsed idle gap renders as a hatched seam labeled with the skipped time.
+    for (const seg of DATA.timeMap.segments){
+      for (let rt = Math.ceil(seg.rs / TS) * TS; rt <= seg.re + 0.001; rt += TS){
+        drawTick(x(seg.cs + (rt - seg.rs)), tickLab(rt), (rt / TS) % 2 === 0)
+      }
+    }
+    for (const gp of DATA.timeMap.gaps){
+      if (!xVisible(gp.c, gp.c + DATA.timeMap.seam)) continue
+      const x0 = x(gp.c), x1 = x(gp.c + DATA.timeMap.seam)
+      gTicks.appendChild(el('rect', { x: x0, y: 0, width: Math.max(x1 - x0, 3), height: DATA.viewH, fill: SVGC.seam, opacity: 0.85 }))
+      gTicks.appendChild(el('line', { x1: x0, y1: 0, x2: x0, y2: DATA.viewH, stroke: SVGC.seamEdge, 'stroke-dasharray': '3 4' }))
+      gTicks.appendChild(el('line', { x1: x1, y1: 0, x2: x1, y2: DATA.viewH, stroke: SVGC.seamEdge, 'stroke-dasharray': '3 4' }))
+      const lb = el('text', { x: (x0 + x1) / 2, y: 14, 'text-anchor': 'middle', class: 'tick big', fill: SVGC.seamTxt })
+      lb.textContent = '⏸ ' + fmtT(gp.skipped)
+      gTicks.appendChild(lb)
+    }
+  } else {
+    for (let t = 0; t <= TMAX + 0.001; t += TS){
+      drawTick(x(t), tickLab(t), (t / TS) % 2 === 0)
+    }
+  }
+
+  DATA.lanes.forEach((lane, laneIndex) => {
+    assignLanes(lane)
+    const lay = LAYOUT[lane.key]
+    const mainC = laneColor(lane, laneIndex)
+    const bgFill = colorAlpha(mainC, lane.role === 'subagent' ? 0.035 : 0.045)
+    const bgStr = colorAlpha(mainC, lane.role === 'subagent' ? 0.28 : 0.20)
+    const barFill = colorAlpha(mainC, lane.role === 'subagent' ? 0.13 : 0.09)
+    const laneNodes = [...lane.main, ...lane.detours]
+    const laneStart = laneNodes.length ? Math.min(...laneNodes.map(node => node.s)) : 0
+    const laneEnd = laneNodes.length ? Math.max(...laneNodes.map(node => node.e)) : laneStart + 0.1
+    const bandX0 = lane.role === 'subagent' ? Math.max(X0 - 14, x(laneStart) - 8) : X0 - 14
+    const bandX1 = lane.role === 'subagent' ? Math.min(X0 + AXIS_W + 14, x(laneEnd) + 8) : X0 + AXIS_W + 14
+    const bandW = Math.max(8, bandX1 - bandX0)
+    gStatic.appendChild(el('rect', { class: lane.role === 'subagent' ? 'lane-band subagent-band' : 'lane-band', x: bandX0, y: lay.regionTop, width: bandW, height: lay.regionBottom - lay.regionTop, rx: 10, fill: bgFill, stroke: bgStr, 'stroke-width': 1.2 }))
+    gStatic.appendChild(el('rect', { x: bandX0, y: lay.regionTop, width: bandW, height: 30, rx: 10, fill: barFill }))
+    gStatic.appendChild(el('rect', { x: bandX0, y: lay.regionTop + 15, width: bandW, height: 15, fill: barFill }))
+    const title = el('text', { x: bandX0 + 8, y: lay.regionTop + 20, class: 'lane-name', fill: mainC })
+    title.textContent = lane.role === 'subagent'
+      ? `⌁ ${laneName(lane)} · ${lane.stats.steps} 步 · ${fmtT(lane.stats.T)}`
+      : `${laneName(lane)}   ${lane.model ?? (lane.preWindow ? '(模型未知：请求头在窗口外)' : '(未知模型)')}`
+    gStatic.appendChild(title)
+    if (lane.role !== 'subagent'){
+      const info = el('text', { x: X0 + AXIS_W - 4, y: lay.regionTop + 20, 'text-anchor': 'end', class: 'lane-info' })
+      const laneTurns = new Set(laneNodes.map(n => n.turn).filter(v => v != null)).size
+      info.textContent = `${laneTurns > 1 ? laneTurns + ' 轮 · ' : ''}${lane.stats.steps} 步（主干 ${lane.stats.main} / 支路 ${lane.stats.detours}）· ${lane.stats.tools} 次工具调用 · ${laneTokLabel(lane.stats)} · 总耗时 ${fmtT(lane.stats.T)}${lane.preWindow ? ' · ⏮ 另有 ' + lane.preWindow + ' 步更早历史未加载' : ''}`
+      gStatic.appendChild(info)
+    }
+
+    const main = lane.main
+    main.forEach((n, i) => {
+      if (i > 0){
+        const prev = main[i - 1]
+        // A new conversation turn is a fresh journey: break the main line and
+        // mark the boundary instead of pretending one continuous task.
+        if (prev.turn != null && n.turn != null && prev.turn !== n.turn){
+          if (xVisible(prev.e, n.s)){
+            const bx = x(Math.max(prev.e, (prev.e + n.s) / 2))
+            const sep = el('line', { x1: bx, y1: lay.regionTop + 34, x2: bx, y2: lay.regionBottom - 12, stroke: SVGC.turnSep, 'stroke-dasharray': '5 5', 'stroke-width': 1.3 })
+            gTime.appendChild(sep)
+            pathEls.push({ el: sep, s: prev.e, e: prev.e + 0.5, base: '5 5' })
+            const tl = el('text', { x: bx + 6, y: lay.regionTop + 48, class: 'tick big', fill: SVGC.turnSepTxt })
+            tl.textContent = '第 ' + n.turn + ' 轮'
+            gTime.appendChild(tl)
+            markEls.push({ el: tl, s: prev.e, e: prev.e + 1 })
+          }
+        } else if (xVisible(prev.e, n.s)){
+          // If failed attempts happened between two successful checkpoints,
+          // keep only a faint checkpoint baseline; the colored detour chain is
+          // the actual chronological route to the next success.
+          const hasDetourChain = lane.detours.some(detour => detour.attach === prev.step && detour.s < n.s)
+          const dash = hasDetourChain ? '3 4' : ''
+          const p = el('path', { d: `M ${x(prev.e)} ${lay.mainY} L ${Math.max(x(n.s), x(prev.e))} ${lay.mainY}`, fill: 'none', stroke: mainC, 'stroke-width': hasDetourChain ? 1.4 : 3, 'stroke-dasharray': dash, opacity: hasDetourChain ? 0.32 : 1, 'stroke-linecap': 'round' })
+          gTime.appendChild(p)
+          pathEls.push({ el: p, s: prev.e, e: n.s, base: dash })
+        }
+      }
+      if (xVisible(n.s, n.e)){
+        const node = drawNode(gTime, lane, n, lay.mainY, true, i)
+        nodeEls.push({ el: node.g, s: n.s, e: n.e })
+      }
+    })
+
+    detourGroups(lane).forEach((group, groupIndex) => {
+      const attach = main.find(node => node.step === group[0]?.attach)
+      const last = group[group.length - 1]
+      const recovery = main.find(node => last && node.s >= last.e && (!attach || node.step !== attach.step))
+
+      group.forEach((d, position) => {
+        const di = lane.detours.indexOf(d)
+        d._id = lane.key + '-d' + di
+        d._laneKey = lane.key
+        d._chainFrom = position === 0 ? attach?.step : group[position - 1]?.step
+        d._recoveryStep = recovery?.step
+        const previous = position === 0 ? attach : group[position - 1]
+        const fromTime = previous?.e ?? d.s
+        const fromY = position === 0 ? lay.mainY : d._y
+        if (xVisible(Math.min(fromTime, d.s), d.e + 0.5)){
+          const ax = x(fromTime), ex = x(d.s), ey = d._y
+          const vc = VCOLOR[d.v] ?? '#b6c0d2'
+          const bend = Math.max(18, Math.min(80, Math.abs(ex - ax) * 0.35))
+          const path = position === 0
+            ? `M ${ax} ${fromY} C ${ax + bend} ${fromY}, ${ex - bend} ${ey}, ${ex} ${ey}`
+            : `M ${ax} ${ey} C ${ax + bend} ${ey}, ${ex - bend} ${ey}, ${ex} ${ey}`
+          const out = el('path', { class: 'detour-chain', d: path, fill: 'none', stroke: vc, 'stroke-width': 2.6, 'stroke-dasharray': '6 5' })
+          out._det = d
+          out.addEventListener('mouseenter', onArcHover)
+          out.addEventListener('mouseleave', offArcHover)
+          out.addEventListener('click', onArcClick)
+          gTime.appendChild(out)
+          pathEls.push({ el: out, s: fromTime, e: Math.max(d.s, fromTime + 0.1), det: d, base: '6 5' })
+        }
+        if (xVisible(d.s, d.e)){
+          const node = drawNode(gTime, lane, d, d._y, false, -1)
+          nodeEls.push({ el: node.g, s: d.s, e: d.e })
+        }
+      })
+
+      // One recovery arc for the entire consecutive failure chain. Returning
+      // every failed attempt to the old checkpoint created the confusing
+      // starburst; chronologically only the final attempt reaches recovery.
+      if (last && recovery && xVisible(last.e, recovery.s)){
+        const sx = x(last.e), tx = x(recovery.s), sy = last._y, ty = lay.mainY
+        const bend = Math.max(24, Math.min(100, Math.abs(tx - sx) * 0.35))
+        const back = el('path', { class: 'recovery-path', d: `M ${sx} ${sy} C ${sx + bend} ${sy}, ${tx - bend} ${ty}, ${tx} ${ty}`, fill: 'none', stroke: SVGC.back, 'stroke-width': 1.8, 'stroke-dasharray': '2 4', 'marker-end': 'url(#arr)' })
+        back._det = last
+        back.addEventListener('mouseenter', onArcHover)
+        back.addEventListener('mouseleave', offArcHover)
+        back.addEventListener('click', onArcClick)
+        gTime.appendChild(back)
+        pathEls.push({ el: back, s: last.e, e: Math.max(recovery.s, last.e + 0.1), det: last, base: '2 4' })
+        const label = el('text', { x: (sx + tx) / 2, y: (sy + ty) / 2 - 5, 'text-anchor': 'middle', class: 'back-label' })
+        label.textContent = `↩ 恢复到 S${recovery.step}`
+        label.style.opacity = 0
+        gTime.appendChild(label)
+        pathEls.push({ el: label, s: last.e, e: Math.max(recovery.s, last.e + 0.5), det: last, base: '', kind: 'lab' })
+      }
+    })
+
+    const lastN = main[main.length - 1]
+    if (lastN && xVisible(lastN.e, lastN.e)){
+      const f = el('text', { x: x(lastN.e), y: lay.mainY - 12, 'text-anchor': 'middle', class: 'mk-flag', fill: VCOLOR.answer })
+      f.textContent = '🏁 ' + fmtT(lane.stats.T)
+      gTime.appendChild(f)
+      markEls.push({ el: f, s: lastN.e, e: lastN.e + 1 })
+    }
+  })
+
+  const cur = el('line', { x1: X0, y1: 0, x2: X0, y2: DATA.viewH, stroke: SVGC.milestone, 'stroke-width': 2 })
+  gTime.appendChild(cur)
+  window._cursor = cur
+  applyFilter()   // 缩放/实时都走 build 全量重建，过滤淡化必须每次重建后重放
+}
+
+/* ==================== 过滤与搜索：状态在 DATA 之外，重建后还原 ==================== */
+let fltFail = false, fltTool = '', fltQ = ''
+
+function nodeMatches(n){
+  if (fltFail && (n.v === 'ok' || n.v === 'answer')) return false
+  if (fltTool !== '' && !(n.tools ?? []).some(tl => tl.name === fltTool)) return false
+  if (fltQ !== ''){
+    const q = fltQ.toLowerCase()
+    const inTools = (n.tools ?? []).some(tl =>
+      String(tl.args ?? '').toLowerCase().includes(q) || String(tl.resFull ?? tl.res ?? '').toLowerCase().includes(q))
+    const narrative = String(n.rzTxtFull ?? n.rzTxt ?? '') + '\n' + String(n.prompt ?? '') + '\n' + String(n.answer ?? '')
+    if (!inTools && !narrative.toLowerCase().includes(q)) return false
+  }
+  return true
+}
+
+function applyFilter(){
+  const active = fltFail || fltTool !== '' || fltQ !== ''
+  const pass = n => nodeMatches(n)
+  nodeEls.forEach(({ el }) => el.classList.toggle('flt-dim', active && el._node != null && !pass(el._node, el._det != null)))
+  pathEls.forEach(({ el, det }) => { if (det) el.classList.toggle('flt-dim', active && !pass(det, true)) })
+  let hit = 0, total = 0
+  if (active && DATA){
+    for (const l of DATA.lanes){
+      for (const n of l.main){ total += 1; if (pass(n, false)) hit += 1 }
+      for (const n of l.detours){ total += 1; if (pass(n, true)) hit += 1 }
+    }
+  }
+  document.getElementById('fltCount').textContent = active ? `命中 ${hit} / ${total} 步` : ''
+}
+
+/** 工具类型下拉从当前数据取集合，保留选中项；选中的工具从数据消失时清空过滤。 */
+function refreshFltTools(){
+  const sel = document.getElementById('fltToolSel')
+  const names = new Set()
+  for (const l of DATA.lanes) for (const n of [...l.main, ...l.detours]) for (const tl of n.tools ?? []) names.add(tl.name)
+  if (fltTool !== '' && !names.has(fltTool)) fltTool = ''
+  sel.innerHTML = '<option value="">全部工具</option>'
+    + [...names].sort().map(x => `<option value="${esc(x)}"${x === fltTool ? ' selected' : ''}>${esc(tlabel(x))}</option>`).join('')
+}
+
+document.getElementById('fltFail').addEventListener('change', e => { fltFail = e.target.checked; applyFilter() })
+document.getElementById('fltToolSel').addEventListener('change', e => { fltTool = e.target.value; applyFilter() })
+document.getElementById('fltQIn').addEventListener('input', e => { fltQ = e.target.value.trim(); applyFilter() })
+
+/* ==================== 导出：当前视图 SVG / PNG（2x），固定浅色底 ==================== */
+function serializeSvg(){
+  // 导出面向分享，固定浅色：暗色下临时切浅色全量重建，序列化完立即切回。
+  // 内联进 SVG 的 CSS 含暗色覆盖块，但导出的 svg 根没有 data-theme，浅色变量恒生效。
+  const wasDark = THEME === 'dark'
+  if (wasDark) setTheme('light', true)
+  try {
+    const vb = svg.getAttribute('viewBox').split(/\s+/).map(Number)
+    const clone = svg.cloneNode(true)
+    clone.setAttribute('xmlns', NS)
+    clone.setAttribute('width', vb[2])
+    clone.setAttribute('height', vb[3])
+    // 页面样式是 <style> 类 + 属性混合，序列化时把全部 CSS 内联进 SVG（body 级选择器在 SVG 内不命中，无害）
+    const css = []
+    for (const sh of document.styleSheets){
+      try { for (const r of sh.cssRules) css.push(r.cssText) } catch { /* 同源内联样式表，正常可读 */ }
+    }
+    const st = el('style', {})
+    st.textContent = css.join('\n')
+    clone.insertBefore(st, clone.firstChild)
+    const bg = el('rect', { x: vb[0], y: vb[1], width: vb[2], height: vb[3], fill: getComputedStyle(document.body).backgroundColor || '#ffffff' })
+    clone.insertBefore(bg, st.nextSibling)
+    return new XMLSerializer().serializeToString(clone)
+  } finally {
+    if (wasDark) setTheme('dark', true)
+  }
+}
+
+function dlBlob(blob, name){
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000)
+}
+
+const expName = () => 'trace-maze-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+
+document.getElementById('btnExpSvg').addEventListener('click', () => {
+  dlBlob(new Blob([serializeSvg()], { type: 'image/svg+xml' }), expName() + '.svg')
+})
+
+document.getElementById('btnExpPng').addEventListener('click', () => {
+  const vb = svg.getAttribute('viewBox').split(/\s+/).map(Number)
+  const url = URL.createObjectURL(new Blob([serializeSvg()], { type: 'image/svg+xml' }))
+  const img = new Image()
+  img.onload = () => {
+    const cv = document.createElement('canvas')
+    cv.width = Math.round(vb[2] * 2)
+    cv.height = Math.round(vb[3] * 2)
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height)
+    URL.revokeObjectURL(url)
+    cv.toBlob(b => { if (b) dlBlob(b, expName() + '.png'); else showErr('PNG 导出失败：canvas 编码为空') }, 'image/png')
+  }
+  img.onerror = () => { URL.revokeObjectURL(url); showErr('PNG 导出失败：SVG 栅格化未成功') }
+  img.src = url
+})
+
+/**
+ * One step as a duration capsule: a rounded bar spanning x(s)→x(e) (minimum
+ * width for sub-pixel steps), verdict-colored, so a 3-minute bash and a 0.2s
+ * read no longer look identical. The icon sits at the bar center, or at the
+ * left cap when the bar is wide enough to carry an inline duration label.
+ */
+function drawNode(parent, lane, n, y, isMain, idx){
+  const g = el('g', { class: 'node' })
+  const c = VCOLOR[n.v] ?? '#b6c0d2'
+  const h = isMain ? 16 : 12
+  const bx0 = x(n.s), bx1 = x(n.e)
+  const w = Math.max(bx1 - bx0, 8)
+  const rx0 = bx1 - bx0 >= 8 ? bx0 : (bx0 + bx1) / 2 - w / 2
+  const cx = rx0 + w / 2
+  g.appendChild(el('rect', { class: 'nbar', x: rx0, y: y - h / 2, width: w, height: h, rx: h / 2, fill: c, opacity: '0', 'stroke-width': 1.2, stroke: '#ffffff' }))
+  const wide = w >= 64
+  const icon = el('text', { x: wide ? rx0 + 10 : cx, y: y + 3.5, 'text-anchor': 'middle', class: 'node-icon', fill: '#fff' })
+  if (isMain){
+    icon.textContent = n.v === 'answer' ? '' : '✓'
+    icon.style.fontSize = n.v === 'answer' ? '0' : '11px'
+  } else {
+    icon.textContent = n.v === 'error' ? '✗' : (n.v === 'retry' ? '↻' : (n.v === 'deadend' ? '·' : '○'))
+    icon.style.fontSize = n.v === 'error' ? '12px' : '13px'
+    icon.style.fontWeight = '700'
+  }
+  g.appendChild(icon)
+  if (wide){
+    const dur = el('text', { x: cx, y: y + 3, 'text-anchor': 'middle', class: 'node-icon', fill: '#fff' })
+    dur.style.fontSize = '9.5px'
+    dur.textContent = fmtT(Math.max(n.e - n.s, 0))
+    g.appendChild(dur)
+  }
+  const imageCount = (n.promptImages?.length ?? 0) + (n.answerImages?.length ?? 0)
+    + (n.tools ?? []).reduce((sum, tool) => sum + (tool.images?.length ?? 0), 0)
+  if (imageCount > 0){
+    const badge = el('g', { class: 'image-badge' })
+    const bw = imageCount > 1 ? 22 : 14
+    const top = y - h / 2
+    const bcx = Math.max(X0, Math.min(cx - bw / 2, X0 + AXIS_W - bw))
+    badge.appendChild(el('line', { x1: cx, y1: top, x2: cx, y2: top - 3, stroke: '#d97706', 'stroke-width': 1 }))
+    badge.appendChild(el('rect', { x: bcx, y: top - 15, width: bw, height: 12, rx: 6, fill: '#d97706', stroke: '#fff', 'stroke-width': 0.8 }))
+    const bt = el('text', { x: bcx + bw / 2, y: top - 6.5, 'text-anchor': 'middle' })
+    bt.textContent = imageCount > 1 ? `▧${imageCount}` : '▧'
+    badge.appendChild(bt)
+    const title = el('title', {}); title.textContent = `${imageCount} 张图片 · 点击查看`; badge.appendChild(title)
+    g.appendChild(badge)
+  }
+  // 并行工具分行（瀑布惯例）：一步 ≥2 次调用时，每次调用画成胶囊条下方的细小条，
+  // 按各自起止摆位、按各自判定上色；悬停显示该调用详情，点击仍开整步面板。
+  // 仅主干步分行：支路节点的纵向空间是固定泳道格，保持「+N」标签（详情面板已列全）。
+  const parH = isMain ? (LAYOUT[lane.key].parH ?? 0) : 0
+  if (isMain && n.tools.length >= 2){
+    n.tools.forEach((tl, ti) => {
+      const ty = y + 12 + ti * 9
+      const tx0 = x(tl.s), tx1 = x(tl.e ?? tl.s)
+      const tw = Math.max(tx1 - tx0, 5)
+      const bar = el('rect', { class: 'nbar subbar', x: tx1 - tx0 >= 5 ? tx0 : (tx0 + tx1) / 2 - tw / 2, y: ty, width: tw, height: 7, rx: 3.5, fill: tl.e == null ? SVGC.back : (VCOLOR[tl.v] ?? VCOLOR.retry), opacity: '0' })
+      bar._tool = tl
+      bar._toolNode = n
+      bar._toolLane = lane
+      bar.addEventListener('mouseenter', onToolHover)
+      bar.addEventListener('mouseleave', offToolHover)
+      g.appendChild(bar)
+    })
+  }
+  const rowKey = isMain ? (idx % 2 ? 'u' : 'd') : ('det-' + (n._id ?? idx))
+  const labY = isMain ? y + (idx % 2 ? -17 : 28 + parH) : y + 24
+  const lab = el('text', { x: cx, y: labY, 'text-anchor': 'middle', class: 'nlabel' })
+  let toolTxt = ''
+  // 实时模式的 in-flight 步在「推理中、尚无工具调用」阶段 tools 为空且 v='ok'——
+  // 无保护取 tools[0] 会抛错打断 build()，整图停在初始透明度（实测：每个新步骤开始时全图消失）。
+  if (n.v !== 'answer' && n.tools.length > 0){
+    const t0 = n.tools[0]
+    toolTxt = tlabel(t0.name) + (n.tools.length > 1 ? ' +' + (n.tools.length - 1) : '')
+  }
+  const full = 'S' + n.step + (toolTxt ? ' ' + toolTxt : '')
+  const key = lane.key + '-' + rowKey
+  const prevEnd = labRows[key] !== undefined ? labRows[key] : -1e9
+  if (cx - prevEnd >= wEst(full) + 12){
+    lab.textContent = full
+    labRows[key] = cx + wEst(full) / 2
+  } else if (cx - prevEnd >= 26){
+    lab.textContent = 'S' + n.step
+    labRows[key] = cx + 10
+  } else {
+    lab.textContent = ''
+  }
+  g.appendChild(lab)
+  g._node = n; g._lane = lane; g._isMain = isMain; g._y = y; g._det = isMain ? null : n
+  g.addEventListener('mouseenter', onHover)
+  g.addEventListener('mouseleave', offHover)
+  g.addEventListener('click', onNodeClick)
+  parent.appendChild(g)
+  return { g }
+}
+
+let hoverDet = null
+let pinnedDet = null   // detour pinned by the open detail panel; keeps its highlight while hovering elsewhere
+const tipEl = document.getElementById('tip')
+let tipHideTimer = 0
+function cancelTipHide(){ if (tipHideTimer){ clearTimeout(tipHideTimer); tipHideTimer = 0 } }
+function hideTipNow(){
+  cancelTipHide()
+  hoverDet = null
+  tipEl.style.display = 'none'
+  render()
+}
+function scheduleTipHide(){
+  cancelTipHide()
+  // Leave a small bridge from the SVG node to the floating window so the user
+  // can move into it, select text, and use its own scrollbar.
+  tipHideTimer = setTimeout(hideTipNow, 500)
+}
+function placeTip(e){
+  let px = e.clientX + 14, py = e.clientY + 14
+  if (px + 620 > window.innerWidth) px = Math.max(8, e.clientX - 620)
+  if (py + 380 > window.innerHeight) py = Math.max(8, e.clientY - 380)
+  tipEl.style.left = px + 'px'; tipEl.style.top = py + 'px'
+}
+tipEl.addEventListener('mouseenter', cancelTipHide)
+tipEl.addEventListener('mouseleave', scheduleTipHide)
+// Keep wheel/selection gestures owned by the tooltip instead of the timeline.
+tipEl.addEventListener('wheel', e => e.stopPropagation(), { passive: true })
+tipEl.addEventListener('mousedown', e => e.stopPropagation())
+function onArcHover(e){
+  cancelTipHide()
+  hoverDet = e.currentTarget._det
+  showTipFor(hoverDet)
+  placeTip(e)
+  render()
+}
+function offArcHover(){ scheduleTipHide() }
+function detourContext(d){
+  const from = d._chainFrom != null ? `S${d._chainFrom}` : '上一步'
+  const position = (d._groupPosition ?? 0) + 1
+  const size = d._groupSize ?? 1
+  return `${size > 1 ? `连续失败链 ${position}/${size}` : '失败尝试'}：从 ${from} 到 S${d.step}`
+    + (d._recoveryStep != null ? `；该链最终恢复到 S${d._recoveryStep}` : '；尚未恢复到成功主干')
+}
+function showTipFor(d){
+  const lane = DATA.lanes.find(l => l.key === d._laneKey) ?? DATA.lanes[0]
+  const tip = document.getElementById('tip')
+  let inner = `<div class="th">${laneName(lane)} S${d.step} · 探索支路 · ${vlabel(d.v)}${d.v === 'error' ? '（被打回）' : ''}</div>`
+  if (d.why) inner += `<div class="rs">判定依据：${esc(d.why)}</div>`
+  inner += `<div class="rs">时段 ${fmtT(wallClock(d.s))} → ${fmtT(wallClock(d.e))}（${(d.e - d.s).toFixed(1)}s）· ${rzLabel(d)}</div>`
+  inner += `<div class="back">${detourContext(d)}</div>`
+  d.tools.forEach(t => {
+    inner += `<pre><b>${tlabel(t.name)}</b> (${t.dur}s) ${t.v === 'error' ? '✗' : (t.v === 'retry' ? '↻' : '')}\n${esc(t.args)}</pre>`
+    if (t.res) inner += `<div class="rs">返回：<pre>${esc(t.res)}</pre></div>`
+    inner += imagesHtml(t.images)
+  })
+  if (d.rzTxt) inner += `<div class="rs">思考摘要：${esc(d.rzTxt)}</div>`
+  tip.innerHTML = inner
+  tip.style.display = 'block'
+}
+function onHover(e){
+  cancelTipHide()
+  const g = e.currentTarget, n = g._node
+  hoverDet = n._id ? n : null
+  render()
+  const lane = g._lane
+  let inner = `<div class="th">${laneName(lane)} S${n.step} · ${g._isMain ? (n.v === 'answer' ? '最终回答' : '主干推进') : '探索支路'} · ${vlabel(n.v)}${n.v === 'error' ? '（被打回）' : ''}</div>`
+  if (n.why) inner += `<div class="rs">判定依据：${esc(n.why)}</div>`
+  inner += `<div class="rs">时段 ${fmtT(wallClock(n.s))} → ${fmtT(wallClock(n.e))}（${(n.e - n.s).toFixed(1)}s）· ${rzLabel(n)}</div>`
+  if (n.prompt) inner += `<div class="rs">用户：${esc(n.prompt.slice(0, 360))}</div>`
+  inner += imagesHtml(n.promptImages)
+  if (!g._isMain) inner += `<div class="back">${detourContext(n)}</div>`
+  n.tools.forEach(t => {
+    inner += `<pre><b>${tlabel(t.name)}</b> (${t.dur}s) ${t.v === 'error' ? '✗' : (t.v === 'retry' ? '↻' : '')}\n${esc(t.args)}</pre>`
+    if (t.res) inner += `<div class="rs">返回：<pre>${esc(t.res)}</pre></div>`
+    inner += imagesHtml(t.images)
+  })
+  if (n.answer) inner += `<div class="rs">回答：${esc(n.answer.slice(0, 500))}</div>`
+  if (n.rzTxt) inner += `<div class="rs">思考摘要：${esc(n.rzTxt)}</div>`
+  tipEl.innerHTML = inner
+  tipEl.style.display = 'block'
+  placeTip(e)
+}
+function offHover(){ scheduleTipHide() }
+/* 并行分行小条的悬停：只讲这一次调用；离开即收（回到胶囊条重新悬停可看整步）。 */
+function onToolHover(e){
+  cancelTipHide()
+  const bar = e.currentTarget
+  const tl = bar._tool, lane = bar._toolLane, n = bar._toolNode
+  const tip = tipEl
+  let inner = `<div class="th">${laneName(lane)} S${n.step} · 并行调用 ${esc(tlabel(tl.name))} · ${vlabel(tl.v)}</div>`
+  inner += `<div class="rs">时段 ${fmtT(wallClock(tl.s))} → ${tl.e != null ? fmtT(wallClock(tl.e)) : '进行中'}${tl.dur != null ? '（' + tl.dur + 's）' : ''}</div>`
+  if (tl.why) inner += `<div class="rs">判定依据：${esc(tl.why)}</div>`
+  inner += `<pre>${esc(tl.args || '(无参数)')}</pre>`
+  if (tl.res) inner += `<div class="rs">返回：<pre>${esc(tl.res)}</pre></div>`
+  inner += imagesHtml(tl.images)
+  tip.innerHTML = inner
+  tip.style.display = 'block'
+  placeTip(e)
+}
+function offToolHover(){ scheduleTipHide() }
+function esc(s){
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+function imagesHtml(images){
+  if (!images?.length) return ''
+  return `<div class="pimages">${images.map((image, index) => `<img loading="lazy" alt="Session image ${index + 1}" src="data:${esc(image.mimeType)};base64,${esc(image.data)}">`).join('')}</div>`
+}
+
+/* ==================== 固定详情面板：点节点/支路弧线打开 ==================== */
+const panelEl = document.getElementById('panel')
+const panelBody = document.getElementById('panelBody')
+let panelTexts = []   // copy-button sources, indexed by data-ci
+let suppressClick = false   // a drag-pan swallows the click it ends on
+
+function openPanel(n, lane, isMain){
+  pinnedDet = n._id ? n : null
+  panelTexts = []
+  document.getElementById('panelTitle').textContent = `${laneName(lane)} S${n.step}`
+  const chip = document.getElementById('panelChip')
+  chip.textContent = (isMain ? (n.v === 'answer' ? '最终回答' : '主干推进') : '探索支路') + ' · ' + vlabel(n.v)
+  chip.style.background = VCOLOR[n.v] ?? '#9aa4b8'
+  const imageCount = (n.promptImages?.length ?? 0) + (n.answerImages?.length ?? 0) + (n.tools ?? []).reduce((sum, tool) => sum + (tool.images?.length ?? 0), 0)
+  let inner = `<div class="prow">时段 ${fmtT(wallClock(n.s))} → ${fmtT(wallClock(n.e))} · 耗时 ${(n.e - n.s).toFixed(1)}s · ${rzLabel(n)}${n.turn != null ? ' · 第 ' + n.turn + ' 轮' : ''}</div>`
+  if (imageCount > 0) inner += `<div class="prow" style="color:#d97706;font-weight:700">▧ 此步骤包含 ${imageCount} 张图片（见下方）</div>`
+  if (n.model) inner += `<div class="prow">模型：${esc((n.provider ? n.provider + ' / ' : '') + n.model)}${n.stopReason ? ' · ' + esc(n.stopReason) : ''}</div>`
+  if (n.usage) inner += `<div class="prow">Token：输入 ${Number(n.usage.input ?? 0).toLocaleString()} · 输出 ${Number(n.usage.output ?? 0).toLocaleString()} · 缓存读取 ${Number(n.usage.cacheRead ?? 0).toLocaleString()}${n.usage.cost > 0 ? ' · $' + Number(n.usage.cost).toFixed(4) : ''}</div>`
+  if (n.why) inner += `<div class="prow">判定依据：${esc(n.why)}</div>`
+  if (!isMain) inner += `<div class="prow" style="color:#d97706">${detourContext(n)}</div>`
+  if (n.prompt || n.promptImages?.length) inner += `<div class="psec"><div class="pt"><b>用户提示</b></div>${n.prompt ? `<pre>${esc(n.prompt)}</pre>` : ''}${imagesHtml(n.promptImages)}</div>`
+  if (n.answer || n.answerImages?.length) inner += `<div class="psec"><div class="pt"><b>模型回答</b></div>${n.answer ? `<pre>${esc(n.answer)}</pre>` : ''}${imagesHtml(n.answerImages)}</div>`
+  for (const tl of n.tools ?? []){
+    const args = String(tl.args ?? '')
+    const res = String(tl.resFull ?? tl.res ?? '')
+    const ai = panelTexts.push(args) - 1
+    const ri = panelTexts.push(res) - 1
+    const subagentButton = tl.linkedSessionId ? `<button class="cp subagent-open" data-open-subagent="${esc(tl.linkedSessionId)}">↗ 打开 ${esc(tl.linkedSessionName ?? 'Subagent')} 轨迹</button>` : ''
+    inner += `<div class="psec"><div class="pt"><b>${esc(tlabel(tl.name))}</b><span style="color:#7a869e;font-weight:500">${tl.dur != null && tl.e != null ? tl.dur + 's' : '进行中'}${(tl.v === 'error' || tl.err) ? ' · ✗ 失败' : (tl.v === 'retry' ? ' · ↻ 无效重试' : '')}</span>${subagentButton}<button class="cp" data-ci="${ai}">复制命令</button></div>`
+    inner += `<pre class="args">${args ? esc(args) : '(无参数)'}</pre>`
+    if (tl.why) inner += `<div class="pwhy">判定：${esc(tl.why)}</div>`
+    if (res) inner += `<div class="pt" style="border-top:1px solid var(--line)">返回内容<span style="color:#7a869e;font-weight:500">${res.length >= 5000 ? '前 5000 字' : res.length + ' 字'}</span><button class="cp" data-ci="${ri}">复制返回</button></div><pre>${esc(res)}</pre>`
+    if (tl.images?.length) inner += `<div class="pt" style="border-top:1px solid var(--line)">图片结果 <span style="color:#7a869e;font-weight:500">${tl.images.length} 张</span></div>${imagesHtml(tl.images)}`
+    inner += `</div>`
+  }
+  const rz = n.rzTxtFull ?? n.rzTxt
+  if (rz) inner += `<div class="rzfull"><b>思考摘要</b><br>${esc(rz)}</div>`
+  panelBody.innerHTML = inner
+  panelBody.scrollTop = 0
+  panelEl.classList.add('show')
+  render()
+}
+function closePanel(){
+  pinnedDet = null
+  panelEl.classList.remove('show')
+  render()
+}
+document.getElementById('panelClose').addEventListener('click', closePanel)
+panelBody.addEventListener('click', ev => {
+  const image = ev.target.closest('.pimages img')
+  if (image){ image.classList.toggle('full-image'); return }
+  const btn = ev.target.closest('button')
+  if (!btn) return
+  if (btn.dataset.openSubagent){
+    parent.postMessage({ kind: 'open-subagent', sessionId: btn.dataset.openSubagent }, location.origin)
+    return
+  }
+  if (btn.dataset.ci !== undefined) copyText(panelTexts[+btn.dataset.ci] ?? '', btn)
+})
+/** Clipboard write with the sandboxed-iframe fallback (execCommand still works there). */
+function copyText(text, btn){
+  const done = ok => {
+    const old = btn.textContent
+    btn.textContent = ok ? '已复制' : '复制失败'
+    setTimeout(() => { btn.textContent = old }, 1200)
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(() => done(true), () => done(legacyCopy(text)))
+  } else done(legacyCopy(text))
+}
+function legacyCopy(text){
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.style.position = 'fixed'
+  ta.style.opacity = '0'
+  document.body.appendChild(ta)
+  ta.select()
+  let ok = false
+  try { ok = document.execCommand('copy') } catch { ok = false }
+  ta.remove()
+  return ok
+}
+function onNodeClick(e){
+  if (suppressClick) return
+  const g = e.currentTarget
+  openPanel(g._node, g._lane, g._isMain)
+  e.stopPropagation()
+}
+function onArcClick(e){
+  if (suppressClick) return
+  const d = e.currentTarget._det
+  openPanel(d, DATA.lanes.find(lane => lane.key === d._laneKey) ?? DATA.lanes[0], false)
+  e.stopPropagation()
+}
+
+/* ==================== 缩放导航：滚轮缩放 + 拖拽平移 + 双击/按钮复位 ==================== */
+let buildQueued = false
+/** Coalesce zoom/pan rebuilds to one full SVG rebuild per animation frame. */
+function queueBuild(){
+  if (buildQueued) return
+  buildQueued = true
+  requestAnimationFrame(() => {
+    buildQueued = false
+    if (DATA){ build(); render() }
+  })
+}
+function setViewWindow(t0, t1){
+  const minSpan = Math.max(TMAX / 4000, 0.5)
+  const span = Math.max(minSpan, Math.min(t1 - t0, TMAX))
+  const s = Math.max(0, Math.min(t0, TMAX - span))
+  VIEW = span >= TMAX - 1e-9 ? null : { t0: s, t1: s + span }
+  queueBuild()
+}
+/** clientX → compressed-timeline time, via the SVG's live screen matrix. */
+function tAtClientX(cx){
+  const m = svg.getScreenCTM()
+  if (!m) return viewT0()
+  return viewT0() + (((cx - m.e) / m.a) - X0) / AXIS_W * viewSpan()
+}
+svg.addEventListener('wheel', e => {
+  if (!DATA) return
+  const scroll = document.getElementById('svgscroll')
+  const hasVerticalLanes = scroll.scrollHeight > scroll.clientHeight + 2
+  if (hasVerticalLanes && !e.ctrlKey && !e.metaKey) return
+  e.preventDefault()
+  const span = viewSpan()
+  const ns = span * Math.exp(e.deltaY * 0.0018)
+  const tc = tAtClientX(e.clientX)
+  const t0 = tc - (tc - viewT0()) * (ns / span)
+  setViewWindow(t0, t0 + ns)
+}, { passive: false })
+let panState = null
+svg.addEventListener('mousedown', e => {
+  if (!DATA || e.button !== 0) return
+  e.preventDefault()
+  panState = { x0: e.clientX, t0: viewT0(), span: viewSpan() }
+})
+window.addEventListener('mousemove', e => {
+  if (!panState) return
+  const dx = e.clientX - panState.x0
+  if (!suppressClick && Math.abs(dx) < 4) return
+  suppressClick = true
+  svg.classList.add('panning')
+  const m = svg.getScreenCTM()
+  const dt = m ? (dx / m.a) / AXIS_W * panState.span : 0
+  setViewWindow(panState.t0 - dt, panState.t0 - dt + panState.span)
+})
+window.addEventListener('mouseup', () => {
+  if (!panState) return
+  panState = null
+  svg.classList.remove('panning')
+  setTimeout(() => { suppressClick = false }, 0)
+})
+svg.addEventListener('dblclick', e => {
+  if (e.target.closest && e.target.closest('.node')) return
+  VIEW = null
+  queueBuild()
+})
+document.getElementById('btnFit').addEventListener('click', () => { VIEW = null; queueBuild() })
+// Esc closes the pinned detail panel; otherwise it bubbles to the shell.
+window.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return
+  if (panelEl.classList.contains('show')){ closePanel(); return }
+  parent.postMessage({ kind: 'trace-esc' }, '*')
+})
+
+/* ============================ 动画 ============================ */
+let t = 0, playing = false, timer = 0, lastTs = 0
+const speedSel = document.getElementById('speed')
+const curTimeEl = document.getElementById('curTime')
+const seekEl = document.getElementById('seek')
+function prog(s, e){ return e - s <= 0 ? (t >= e ? 1 : 0) : (t - s) / (e - s) }
+
+function render(){
+  const focus = hoverDet ?? pinnedDet
+  pathEls.forEach(({ el, s, e, det, base, kind }) => {
+    const p = prog(s, e)
+    const len = el.getTotalLength ? el.getTotalLength() : 100
+    if (p >= 1){
+      el.setAttribute('stroke-dasharray', base || '')
+      el.setAttribute('stroke-dashoffset', '0')
+    } else {
+      el.setAttribute('stroke-dasharray', len)
+      el.setAttribute('stroke-dashoffset', len * (1 - Math.max(0, p)))
+    }
+    if (det){
+      const hit = focus && det._id === focus._id
+      if (kind === 'lab'){
+        el.style.opacity = hit ? 1 : 0
+      } else if (focus){
+        el.style.opacity = hit ? 1 : 0.12
+        el.classList.toggle('hl-path', hit)
+      } else {
+        el.style.opacity = t >= s ? 1 : 0.25
+        el.classList.remove('hl-path')
+      }
+    } else {
+      el.style.opacity = t >= s ? 1 : 0.25
+    }
+  })
+  nodeEls.forEach(({ el, s, e }) => {
+    const p = prog(s, e)
+    const cs = el.querySelectorAll('.nbar')
+    const op = t < s ? 0 : (t < e ? 0.3 + 0.7 * p : 1)
+    cs.forEach(c => c.setAttribute('opacity', op))
+    if (el._det && focus){
+      el.style.opacity = el._det._id === focus._id ? 1 : 0.18
+      el.classList.toggle('hl-node', el._det._id === focus._id)
+    } else {
+      el.style.opacity = t >= s ? 1 : 0.3
+      el.classList.remove('hl-node')
+    }
+  })
+  markEls.forEach(({ el, s, e }) => {
+    el.style.opacity = t >= s ? 1 : 0
+    if (t >= s && t < e) el.style.opacity = (t * 30) % 2 < 1 ? 1 : 0.15
+  })
+  window._cursor.setAttribute('x1', x(t))
+  window._cursor.setAttribute('x2', x(t))
+  curTimeEl.textContent = fmtT(wallClock(t))
+  seekEl.value = Math.round(t / TMAX * 1000)
+}
+function tick(){
+  if (!playing) return
+  const now = Date.now()
+  if (!lastTs) lastTs = now
+  const dt = (now - lastTs) / 1000 * parseFloat(speedSel.value)
+  lastTs = now
+  t = Math.min(t + dt, TMAX)
+  render()
+  if (t >= TMAX){ playing = false; btnPlay.textContent = '▶ 重播' }
+}
+const btnPlay = document.getElementById('btnPlay')
+btnPlay.addEventListener('click', () => {
+  if (t >= TMAX) t = 0
+  playing = !playing
+  btnPlay.textContent = playing ? '⏸ 暂停' : '▶ 播放'
+  lastTs = 0
+  if (playing && !timer) timer = setInterval(tick, 16)
+  else if (!playing && timer){ clearInterval(timer); timer = 0 }
+})
+document.getElementById('btnReset').addEventListener('click', () => {
+  playing = false
+  if (timer){ clearInterval(timer); timer = 0 }
+  btnPlay.textContent = '▶ 播放'
+  t = 0; render()
+})
+seekEl.addEventListener('input', () => {
+  t = parseFloat(seekEl.value) / 1000 * TMAX
+  render()
+})
+
+/* ============================ Server-pushed Pi data ============================ */
+let DATA = null
+const errbar = document.getElementById('errbar')
+function showErr(msg){ errbar.textContent = msg; errbar.style.display = 'block' }
+
+function renderData(data, opts = {}){
+  DATA = data
+  compressTimeline(DATA)
+  TMAX = DATA.Tmax
+  if (!opts.follow) VIEW = null
+  else if (VIEW){
+    const span = Math.min(VIEW.t1 - VIEW.t0, TMAX)
+    const s = Math.max(0, Math.min(VIEW.t0, TMAX - span))
+    VIEW = span >= TMAX - 1e-9 ? null : { t0: s, t1: s + span }
+  }
+  LAYOUT = computeLayout(DATA.lanes)
+  DATA.viewH = Math.max(...DATA.lanes.map(l => LAYOUT[l.key].regionBottom)) + 30
+  renderLegend()
+  document.body.classList.add('hasdata')
+  document.getElementById('legend').style.display = 'flex'
+  document.getElementById('controls').style.display = 'flex'
+  document.getElementById('fltbar').style.display = 'flex'
+  refreshFltTools()
+  const wrap = document.getElementById('svgwrap')
+  const scroll = document.getElementById('svgscroll')
+  wrap.style.display = 'block'
+  // Keep the 1560-unit timeline at full available width; additional parent/
+  // Subagent lanes extend vertically and scroll instead of shrinking to a
+  // postage stamp.
+  svg.style.height = Math.max(scroll.clientHeight, scroll.clientWidth * DATA.viewH / 1560) + 'px'
+  playing = false
+  if (timer){ clearInterval(timer); timer = 0 }
+  btnPlay.textContent = '▶ 播放'
+  t = opts.startAtBeginning ? 0 : TMAX
+  build()
+  render()
+}
+
+/* ===== Live mode: parent frame pushes rendered maze data via postMessage ===== */
+let liveSig = null
+
+/**
+ * Structural signature of a live payload: settled nodes' identity/verdict and
+ * arrived tool-result counts. Deliberately excludes the in-flight step's
+ * timings and reasoning volume so streaming chunks don't force a full SVG
+ * rebuild — the maze only redraws when something structural actually changed.
+ */
+function mazeSignature(data){
+  const parts = []
+  for (const l of data.lanes){
+    parts.push('m' + l.main.length, 'd' + l.detours.length)
+    for (const arr of [l.main, l.detours]){
+      for (const n of arr){
+        if (n.live){ parts.push('L' + n.tools.length); continue }
+        // rzTok 在 assistant/message 终结时一次性到位（流式期间恒空），进签名不会引发重画风暴
+        parts.push(n.step + ':' + n.v + ':' + n.tools.length + ':' + n.tools.filter(tl => tl.e != null).length + ':' + (n.rzTok != null ? 1 : 0))
+      }
+    }
+  }
+  return parts.join('|')
+}
+
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.kind !== 'trace-maze') return
+  document.body.classList.add('live')
+  const sig = String(e.data.key ?? '') + '|' + mazeSignature(e.data.data)
+  if (sig === liveSig) return
+  liveSig = sig
+  renderData(e.data.data, { follow: e.data.follow === true })
+})
+
+// 主题跟随：宿主读取自身主题后推 {kind:'trace-theme', mode}（照 trace-maze 的 postMessage 模式）
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.kind !== 'trace-theme') return
+  setTheme(e.data.mode)
+})
+
+// 初始主题：宿主消息到达前按系统偏好兜底（独立打开/分享场景）；宿主消息一到以宿主为准
+readPalette()
+setTheme(typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+parent.postMessage({ kind: 'trace-ready' }, location.origin)
+
+</script>
+</body>
+</html>

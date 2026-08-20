@@ -1,0 +1,11 @@
+pi-trj-visualize contains visualization code derived from the original
+`dsh-trace-compare` project by lamost423:
+
+https://github.com/lamost423/dsh-trace-compare
+
+That project in turn contains code derived from DeepSeek Harness:
+
+https://github.com/deepseek-ai/deepseek-harness
+
+The original projects and this derivative are available under the MIT License.
+See LICENSE for this repository's license text.
