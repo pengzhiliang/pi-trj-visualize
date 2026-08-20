@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pi Trj Visualize · 迷宫时间线</title>
+<title>Pi Trj Visualize · Trajectory Timeline</title>
 <style>
   :root{
     --bg:#f4f5f7; --panel:#ffffff; --panel2:#f6f8fb; --line:#e4e7ee; --txt:#1f2937; --dim:#7a869e;
@@ -45,8 +45,6 @@
   .controls button{background:var(--panel); color:var(--txt); border:1px solid var(--border); border-radius:8px; padding:4px 14px; font-size:13px; cursor:pointer; transition:background .15s}
   .controls button:hover{background:var(--hover)}
   .controls select{background:var(--panel); color:var(--txt); border:1px solid var(--border); border-radius:8px; padding:3px 6px}
-  #curTime{font-variant-numeric:tabular-nums; min-width:70px; color:var(--main-f); font-weight:600}
-  #seek{flex:1}
   .svgwrap{overflow:hidden; flex:1 1 0; min-height:120px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:0 1px 4px rgba(16,24,40,.05); position:relative}
   #svgscroll{position:absolute; inset:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--line) transparent}
   #svg{width:100%; height:auto; min-height:100%; display:block; cursor:grab}
@@ -118,34 +116,24 @@
 <div class="legend" id="legend" style="display:none"></div>
 
 <div class="controls" id="controls" style="display:none">
-  <button id="btnPlay">▶ 播放</button>
-  <button id="btnReset">⟲</button>
-  <select id="speed">
-    <option value="1">1×</option><option value="5">5×</option>
-    <option value="10">10×</option><option value="25" selected>25×</option>
-    <option value="50">50×</option><option value="100">100×</option>
-    <option value="300">300×</option>
-  </select>
-  <span id="curTime">0.0s</span>
-  <input type="range" id="seek" min="0" max="1000" value="0">
-  <button id="btnFit" title="复位缩放（双击空白处同效）">⤢ 整图</button>
-  <span class="zoomhint">滚轮纵向浏览 · Ctrl/⌘+滚轮缩放 · 拖拽平移</span>
+  <button id="btnFit" title="Reset zoom (or double-click empty space)">⤢ Fit</button>
+  <span class="zoomhint">Wheel: vertical scroll · Ctrl/⌘+wheel: zoom · Drag: pan</span>
 </div>
 
 <div class="controls" id="fltbar" style="display:none">
-  <label class="fltlab"><input type="checkbox" id="fltFail"> 只看失败/重试</label>
-  <select id="fltToolSel"><option value="">全部工具</option></select>
-  <input type="search" id="fltQIn" placeholder="搜索命令与返回内容…">
+  <label class="fltlab"><input type="checkbox" id="fltFail"> Failures/retries only</label>
+  <select id="fltToolSel"><option value="">All tools</option></select>
+  <input type="search" id="fltQIn" placeholder="Search commands and results…">
   <span id="fltCount"></span>
   <span style="flex:1"></span>
-  <button id="btnExpSvg" title="导出当前视图为 SVG">⬇ SVG</button>
-  <button id="btnExpPng" title="导出当前视图为 PNG（2x）">⬇ PNG</button>
+  <button id="btnExpSvg" title="Export current view as SVG">⬇ SVG</button>
+  <button id="btnExpPng" title="Export current view as PNG (2x)">⬇ PNG</button>
 </div>
 
 <div class="svgwrap" id="svgwrap" style="display:none">
 <div id="svgscroll"><svg id="svg" viewBox="0 0 1560 1150" preserveAspectRatio="xMidYMin meet"></svg></div>
 <div id="panel">
-  <div class="ph"><b id="panelTitle"></b><span class="vchip" id="panelChip"></span><button class="pclose" id="panelClose" title="关闭（Esc）">×</button></div>
+  <div class="ph"><b id="panelTitle"></b><span class="vchip" id="panelChip"></span><button class="pclose" id="panelClose" title="Close (Esc)">×</button></div>
   <div class="pbody" id="panelBody"></div>
 </div>
 </div>
@@ -153,6 +141,16 @@
 
 <script>
 'use strict'
+const MAZE_TEXT = {
+  en: {
+    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', zoomHint:'Wheel: vertical scroll · Ctrl/⌘+wheel: zoom · Drag: pan', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', copyCommand:'Copy command', copyResult:'Copy result', verdict:'Verdict', resultContent:'Result', firstChars:'first 5,000 chars', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', copied:'Copied', copyFailed:'Copy failed'
+  },
+  zh: {
+    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', zoomHint:'滚轮纵向浏览 · Ctrl/⌘+滚轮缩放 · 拖拽平移', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', copyCommand:'复制命令', copyResult:'复制返回', verdict:'判定', resultContent:'返回内容', firstChars:'前 5000 字', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', copied:'已复制', copyFailed:'复制失败'
+  }
+}
+let LANG = 'en'
+const mt = (key, vars = {}) => Object.entries(vars).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), MAZE_TEXT[LANG][key] ?? key)
 
 /** Format seconds for axis/stat labels: 49252 → "13.7h", 340 → "6m", 42.5 → "42.5s". */
 function fmtT(t){
@@ -163,19 +161,19 @@ function fmtT(t){
 
 /** 步级推理量标签：有 usage 真值用 token，否则诚实按流式段数计（旧标签把段数冒充 token）。 */
 function rzLabel(n){
-  return n.rzTok != null ? '推理 ' + n.rzTok.toLocaleString() + ' tok' : n.rz + ' 段推理'
+  return n.rzTok != null ? mt('reasoningTokens',{n:n.rzTok.toLocaleString()}) : mt('reasoningChunks',{n:n.rz})
 }
 
 /** 泳道级推理/输出量标签，同上口径。 */
 function laneTokLabel(st){
   const parts = []
-  if (st.inputTok > 0) parts.push('输入 ' + st.inputTok.toLocaleString() + ' tok')
-  if (st.outTok != null) parts.push('输出 ' + st.outTok.toLocaleString() + ' tok')
-  if (st.rzTok != null) parts.push('推理 ' + st.rzTok.toLocaleString() + ' tok')
-  else if (st.rz > 0) parts.push(st.rz.toLocaleString() + ' 段推理')
-  if (st.cacheReadTok > 0) parts.push('缓存 ' + st.cacheReadTok.toLocaleString())
+  if (st.inputTok > 0) parts.push(mt('inputTokens',{n:st.inputTok.toLocaleString()}))
+  if (st.outTok != null) parts.push(mt('outputTokens',{n:st.outTok.toLocaleString()}))
+  if (st.rzTok != null) parts.push(mt('reasoningTokens',{n:st.rzTok.toLocaleString()}))
+  else if (st.rz > 0) parts.push(mt('reasoningChunks',{n:st.rz.toLocaleString()}))
+  if (st.cacheReadTok > 0) parts.push(mt('cacheTokens',{n:st.cacheReadTok.toLocaleString()}))
   if (st.cost > 0) parts.push('$' + (st.cost < .01 ? st.cost.toFixed(4) : st.cost.toFixed(2)))
-  return parts.length ? parts.join(' · ') : '无 token 用量'
+  return parts.length ? parts.join(' · ') : mt('noUsage')
 }
 
 /** Axis tick interval keeping ≤50 gridlines for any span (sub-minute steps serve zoomed-in windows). */
@@ -264,7 +262,7 @@ function compressTimeline(data){
   data.timeMap = { segments, gaps, seam }
 }
 
-/** Compressed time → wall-clock seconds (for the playback clock). */
+/** Compressed time → wall-clock seconds for labels and details. */
 function wallClock(t){
   if (!DATA || !DATA.timeMap) return t
   const segs = DATA.timeMap.segments
@@ -357,10 +355,21 @@ function setTheme(mode, force){
   readPalette()
   if (DATA){ build(); render() }
 }
+function applyMazeLanguage(lang){
+  LANG = lang === 'zh' ? 'zh' : 'en'
+  document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en'
+  document.title = `Pi Trj Visualize · ${LANG === 'zh' ? '迷宫时间线' : 'Trajectory Timeline'}`
+  document.getElementById('btnFit').textContent = mt('fit'); document.getElementById('btnFit').title = mt('fitTitle')
+  document.querySelector('.zoomhint').textContent = mt('zoomHint')
+  document.querySelector('#fltbar .fltlab').lastChild.textContent = ' ' + mt('failuresOnly')
+  document.getElementById('fltQIn').placeholder = mt('search')
+  document.getElementById('btnExpSvg').title = mt('exportSvg'); document.getElementById('btnExpPng').title = mt('exportPng'); document.getElementById('panelClose').title = mt('close')
+  if (DATA){ refreshFltTools(); renderLegend(); build(); render() }
+}
 const TOOL_LABEL = { bash: 'bash', grep: 'grep', read: 'read', web_search: 'web', python3: 'python', curl: 'curl' }
 const tlabel = n => TOOL_LABEL[n] ?? n
-const vlabel = v => ({ error: '失败 ✗', deadend: '扑空 ·', retry: '无效重试 ↻', ok: '成功', answer: '回答' }[v] ?? v)
-const laneName = lane => lane.title ?? (lane.role === 'subagent' ? 'Subagent' : '主会话')
+const vlabel = v => ({ error: mt('failed'), deadend: mt('deadend'), retry: mt('retry'), ok: mt('success'), answer: mt('answer') }[v] ?? v)
+const laneName = lane => lane.title ?? (lane.role === 'subagent' ? mt('subagent') : mt('mainSession'))
 function laneColor(lane, index = 0){
   if (lane.role === 'subagent') return lane.color ?? ['#0891b2','#d97706','#db2777','#4f46e5','#65a30d'][index % 5]
   return MAIN_COLOR.l1
@@ -374,16 +383,16 @@ function colorAlpha(color, alpha){
 function renderLegend(){
   const lg = []
   DATA.lanes.forEach((lane, index) => {
-    const kind = lane.role === 'subagent' ? 'Subagent' : '主会话'
+    const kind = lane.role === 'subagent' ? mt('subagent') : mt('main')
     lg.push(`<span class="lg"><span class="ln" style="border-color:${laneColor(lane,index)}"></span>${kind} · ${esc(laneName(lane))}</span>`)
   })
-  lg.push('<span class="lg" title="按真实先后连接的失败尝试"><span class="ln dt"></span>连续失败链</span>')
-  lg.push('<span class="lg" title="最后一次失败后重新回到成功主干"><span class="ln bk"></span>恢复主干</span>')
-  lg.push('<span class="lg"><span class="sw er"></span>失败 ✗</span>')
-  lg.push('<span class="lg" title="检索无结果"><span class="sw de"></span>扑空 ·</span>')
-  lg.push('<span class="lg"><span class="sw rt"></span>无效重试 ↻</span>')
-  lg.push('<span class="lg"><span class="sw an"></span>最终回答</span>')
-  if (DATA.timeMap) lg.push('<span class="lg">⏸ 空闲已折叠</span>')
+  lg.push(`<span class="lg" title="${mt('failureChainTitle')}"><span class="ln dt"></span>${mt('failureChain')}</span>`)
+  lg.push(`<span class="lg" title="${mt('recoveryTitle')}"><span class="ln bk"></span>${mt('recovery')}</span>`)
+  lg.push(`<span class="lg"><span class="sw er"></span>${mt('failed')}</span>`)
+  lg.push(`<span class="lg"><span class="sw de"></span>${mt('deadend')}</span>`)
+  lg.push(`<span class="lg"><span class="sw rt"></span>${mt('retry')}</span>`)
+  lg.push(`<span class="lg"><span class="sw an"></span>${mt('finalAnswer')}</span>`)
+  if (DATA.timeMap) lg.push(`<span class="lg">${mt('idleFolded')}</span>`)
 
   document.getElementById('legend').innerHTML = lg.join('')
 }
@@ -518,13 +527,13 @@ function build(){
     gStatic.appendChild(el('rect', { x: bandX0, y: lay.regionTop + 15, width: bandW, height: 15, fill: barFill }))
     const title = el('text', { x: bandX0 + 8, y: lay.regionTop + 20, class: 'lane-name', fill: mainC })
     title.textContent = lane.role === 'subagent'
-      ? `⌁ ${laneName(lane)} · ${lane.stats.steps} 步 · ${fmtT(lane.stats.T)}`
-      : `${laneName(lane)}   ${lane.model ?? (lane.preWindow ? '(模型未知：请求头在窗口外)' : '(未知模型)')}`
+      ? `⌁ ${laneName(lane)} · ${mt('steps',{n:lane.stats.steps})} · ${fmtT(lane.stats.T)}`
+      : `${laneName(lane)}   ${lane.model ?? (lane.preWindow ? mt('oldModel') : mt('unknownModel'))}`
     gStatic.appendChild(title)
     if (lane.role !== 'subagent'){
       const info = el('text', { x: X0 + AXIS_W - 4, y: lay.regionTop + 20, 'text-anchor': 'end', class: 'lane-info' })
       const laneTurns = new Set(laneNodes.map(n => n.turn).filter(v => v != null)).size
-      info.textContent = `${laneTurns > 1 ? laneTurns + ' 轮 · ' : ''}${lane.stats.steps} 步（主干 ${lane.stats.main} / 支路 ${lane.stats.detours}）· ${lane.stats.tools} 次工具调用 · ${laneTokLabel(lane.stats)} · 总耗时 ${fmtT(lane.stats.T)}${lane.preWindow ? ' · ⏮ 另有 ' + lane.preWindow + ' 步更早历史未加载' : ''}`
+      info.textContent = mt('laneStats',{turns:laneTurns>1?mt('turnsPrefix',{n:laneTurns}):'',steps:lane.stats.steps,main:lane.stats.main,detours:lane.stats.detours,tools:lane.stats.tools,tokens:laneTokLabel(lane.stats),elapsed:fmtT(lane.stats.T)})
       gStatic.appendChild(info)
     }
 
@@ -541,7 +550,7 @@ function build(){
             gTime.appendChild(sep)
             pathEls.push({ el: sep, s: prev.e, e: prev.e + 0.5, base: '5 5' })
             const tl = el('text', { x: bx + 6, y: lay.regionTop + 48, class: 'tick big', fill: SVGC.turnSepTxt })
-            tl.textContent = '第 ' + n.turn + ' 轮'
+            tl.textContent = mt('turn',{n:n.turn})
             gTime.appendChild(tl)
             markEls.push({ el: tl, s: prev.e, e: prev.e + 1 })
           }
@@ -611,7 +620,7 @@ function build(){
         gTime.appendChild(back)
         pathEls.push({ el: back, s: last.e, e: Math.max(recovery.s, last.e + 0.1), det: last, base: '2 4' })
         const label = el('text', { x: (sx + tx) / 2, y: (sy + ty) / 2 - 5, 'text-anchor': 'middle', class: 'back-label' })
-        label.textContent = `↩ 恢复到 S${recovery.step}`
+        label.textContent = mt('recoverTo',{n:recovery.step})
         label.style.opacity = 0
         gTime.appendChild(label)
         pathEls.push({ el: label, s: last.e, e: Math.max(recovery.s, last.e + 0.5), det: last, base: '', kind: 'lab' })
@@ -627,9 +636,6 @@ function build(){
     }
   })
 
-  const cur = el('line', { x1: X0, y1: 0, x2: X0, y2: DATA.viewH, stroke: SVGC.milestone, 'stroke-width': 2 })
-  gTime.appendChild(cur)
-  window._cursor = cur
   applyFilter()   // 缩放/实时都走 build 全量重建，过滤淡化必须每次重建后重放
 }
 
@@ -661,7 +667,7 @@ function applyFilter(){
       for (const n of l.detours){ total += 1; if (pass(n, true)) hit += 1 }
     }
   }
-  document.getElementById('fltCount').textContent = active ? `命中 ${hit} / ${total} 步` : ''
+  document.getElementById('fltCount').textContent = active ? mt('hits',{hit,total}) : ''
 }
 
 /** 工具类型下拉从当前数据取集合，保留选中项；选中的工具从数据消失时清空过滤。 */
@@ -670,7 +676,7 @@ function refreshFltTools(){
   const names = new Set()
   for (const l of DATA.lanes) for (const n of [...l.main, ...l.detours]) for (const tl of n.tools ?? []) names.add(tl.name)
   if (fltTool !== '' && !names.has(fltTool)) fltTool = ''
-  sel.innerHTML = '<option value="">全部工具</option>'
+  sel.innerHTML = `<option value="">${mt('allTools')}</option>`
     + [...names].sort().map(x => `<option value="${esc(x)}"${x === fltTool ? ' selected' : ''}>${esc(tlabel(x))}</option>`).join('')
 }
 
@@ -732,9 +738,9 @@ document.getElementById('btnExpPng').addEventListener('click', () => {
     cv.height = Math.round(vb[3] * 2)
     cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height)
     URL.revokeObjectURL(url)
-    cv.toBlob(b => { if (b) dlBlob(b, expName() + '.png'); else showErr('PNG 导出失败：canvas 编码为空') }, 'image/png')
+    cv.toBlob(b => { if (b) dlBlob(b, expName() + '.png'); else showErr(mt('pngEmpty')) }, 'image/png')
   }
-  img.onerror = () => { URL.revokeObjectURL(url); showErr('PNG 导出失败：SVG 栅格化未成功') }
+  img.onerror = () => { URL.revokeObjectURL(url); showErr(mt('pngRaster')) }
   img.src = url
 })
 
@@ -782,7 +788,7 @@ function drawNode(parent, lane, n, y, isMain, idx){
     const bt = el('text', { x: bcx + bw / 2, y: top - 6.5, 'text-anchor': 'middle' })
     bt.textContent = imageCount > 1 ? `▧${imageCount}` : '▧'
     badge.appendChild(bt)
-    const title = el('title', {}); title.textContent = `${imageCount} 张图片 · 点击查看`; badge.appendChild(title)
+    const title = el('title', {}); title.textContent = mt('images',{n:imageCount}); badge.appendChild(title)
     g.appendChild(badge)
   }
   // 并行工具分行（瀑布惯例）：一步 ≥2 次调用时，每次调用画成胶囊条下方的细小条，
@@ -870,26 +876,46 @@ function onArcHover(e){
   render()
 }
 function offArcHover(){ scheduleTipHide() }
+function translateWhy(value){
+  const why = String(value ?? '')
+  if (LANG === 'zh') return why
+  return why
+    .replace(/^工具返回错误标志（isError）/, 'Tool returned an error flag (isError)')
+    .replace(/^输出命中失败特征「(.+)」/, 'Output matched failure signature “$1”')
+    .replace(/^输出开头命中失败特征「(.+)」/, 'Output prefix matched failure signature “$1”')
+    .replace(/^写入类工具，无错误即成功/, 'Write tool completed without an error')
+    .replace(/^检索返回为空，判为扑空/, 'Search returned no content')
+    .replace(/^检索开头命中无结果特征，判为扑空/, 'Search matched a no-result signature')
+    .replace(/^检索有返回/, 'Search returned results')
+    .replace(/^退出正常但无输出，判为扑空/, 'Tool exited normally but produced no output')
+    .replace(/^退出正常且有输出/, 'Tool exited normally with output')
+    .replace(/^无工具调用，输出回答/, 'No tool call; assistant produced an answer')
+    .replace(/^无工具调用，模型完成本步/, 'No tool call; model completed the step')
+    .replace(/^工具结果尚未写入 session，暂留主干/, 'Tool result is not persisted yet; temporarily kept on the main path')
+    .replace(/同一操作连续重试 (\d+) 次（其中 (\d+) 次失败），判为盲目重试/, 'Repeated the same operation $1 times ($2 failures); classified as a wasteful retry')
+    .replace(/；处于连续重试簇（同一操作共 (\d+) 次）/, '; part of a retry cluster ($1 attempts)')
+    .replace(/^模型响应 (\w+)；/, 'Model response ended with $1; ')
+}
 function detourContext(d){
-  const from = d._chainFrom != null ? `S${d._chainFrom}` : '上一步'
+  const from = d._chainFrom != null ? `S${d._chainFrom}` : mt('previous')
   const position = (d._groupPosition ?? 0) + 1
   const size = d._groupSize ?? 1
-  return `${size > 1 ? `连续失败链 ${position}/${size}` : '失败尝试'}：从 ${from} 到 S${d.step}`
-    + (d._recoveryStep != null ? `；该链最终恢复到 S${d._recoveryStep}` : '；尚未恢复到成功主干')
+  return mt(size > 1 ? 'chainContext' : 'failureContext',{position,size,from,step:d.step})
+    + mt(d._recoveryStep != null ? 'recovers' : 'noRecovery',d._recoveryStep != null?{step:d._recoveryStep}:{})
 }
 function showTipFor(d){
   const lane = DATA.lanes.find(l => l.key === d._laneKey) ?? DATA.lanes[0]
   const tip = document.getElementById('tip')
-  let inner = `<div class="th">${laneName(lane)} S${d.step} · 探索支路 · ${vlabel(d.v)}${d.v === 'error' ? '（被打回）' : ''}</div>`
-  if (d.why) inner += `<div class="rs">判定依据：${esc(d.why)}</div>`
-  inner += `<div class="rs">时段 ${fmtT(wallClock(d.s))} → ${fmtT(wallClock(d.e))}（${(d.e - d.s).toFixed(1)}s）· ${rzLabel(d)}</div>`
+  let inner = `<div class="th">${laneName(lane)} S${d.step} · ${mt('detour')} · ${vlabel(d.v)}${d.v === 'error' ? mt('rejected') : ''}</div>`
+  if (d.why) inner += `<div class="rs">${mt('rationale')}: ${esc(translateWhy(d.why))}</div>`
+  inner += `<div class="rs">${mt('interval',{start:fmtT(wallClock(d.s)),end:fmtT(wallClock(d.e)),duration:(d.e-d.s).toFixed(1),reasoning:rzLabel(d)})}</div>`
   inner += `<div class="back">${detourContext(d)}</div>`
   d.tools.forEach(t => {
     inner += `<pre><b>${tlabel(t.name)}</b> (${t.dur}s) ${t.v === 'error' ? '✗' : (t.v === 'retry' ? '↻' : '')}\n${esc(t.args)}</pre>`
-    if (t.res) inner += `<div class="rs">返回：<pre>${esc(t.res)}</pre></div>`
+    if (t.res) inner += `<div class="rs">${mt('result')}:<pre>${esc(t.res)}</pre></div>`
     inner += imagesHtml(t.images)
   })
-  if (d.rzTxt) inner += `<div class="rs">思考摘要：${esc(d.rzTxt)}</div>`
+  if (d.rzTxt) inner += `<div class="rs">${mt('reasoning')}: ${esc(d.rzTxt)}</div>`
   tip.innerHTML = inner
   tip.style.display = 'block'
 }
@@ -899,19 +925,19 @@ function onHover(e){
   hoverDet = n._id ? n : null
   render()
   const lane = g._lane
-  let inner = `<div class="th">${laneName(lane)} S${n.step} · ${g._isMain ? (n.v === 'answer' ? '最终回答' : '主干推进') : '探索支路'} · ${vlabel(n.v)}${n.v === 'error' ? '（被打回）' : ''}</div>`
-  if (n.why) inner += `<div class="rs">判定依据：${esc(n.why)}</div>`
-  inner += `<div class="rs">时段 ${fmtT(wallClock(n.s))} → ${fmtT(wallClock(n.e))}（${(n.e - n.s).toFixed(1)}s）· ${rzLabel(n)}</div>`
-  if (n.prompt) inner += `<div class="rs">用户：${esc(n.prompt.slice(0, 360))}</div>`
+  let inner = `<div class="th">${laneName(lane)} S${n.step} · ${g._isMain ? (n.v === 'answer' ? mt('finalAnswer') : mt('mainProgress')) : mt('detour')} · ${vlabel(n.v)}${n.v === 'error' ? mt('rejected') : ''}</div>`
+  if (n.why) inner += `<div class="rs">${mt('rationale')}: ${esc(translateWhy(n.why))}</div>`
+  inner += `<div class="rs">${mt('interval',{start:fmtT(wallClock(n.s)),end:fmtT(wallClock(n.e)),duration:(n.e-n.s).toFixed(1),reasoning:rzLabel(n)})}</div>`
+  if (n.prompt) inner += `<div class="rs">${mt('user')}: ${esc(n.prompt.slice(0, 360))}</div>`
   inner += imagesHtml(n.promptImages)
   if (!g._isMain) inner += `<div class="back">${detourContext(n)}</div>`
   n.tools.forEach(t => {
     inner += `<pre><b>${tlabel(t.name)}</b> (${t.dur}s) ${t.v === 'error' ? '✗' : (t.v === 'retry' ? '↻' : '')}\n${esc(t.args)}</pre>`
-    if (t.res) inner += `<div class="rs">返回：<pre>${esc(t.res)}</pre></div>`
+    if (t.res) inner += `<div class="rs">${mt('result')}:<pre>${esc(t.res)}</pre></div>`
     inner += imagesHtml(t.images)
   })
-  if (n.answer) inner += `<div class="rs">回答：${esc(n.answer.slice(0, 500))}</div>`
-  if (n.rzTxt) inner += `<div class="rs">思考摘要：${esc(n.rzTxt)}</div>`
+  if (n.answer) inner += `<div class="rs">${mt('response')}: ${esc(n.answer.slice(0, 500))}</div>`
+  if (n.rzTxt) inner += `<div class="rs">${mt('reasoning')}: ${esc(n.rzTxt)}</div>`
   tipEl.innerHTML = inner
   tipEl.style.display = 'block'
   placeTip(e)
@@ -923,11 +949,11 @@ function onToolHover(e){
   const bar = e.currentTarget
   const tl = bar._tool, lane = bar._toolLane, n = bar._toolNode
   const tip = tipEl
-  let inner = `<div class="th">${laneName(lane)} S${n.step} · 并行调用 ${esc(tlabel(tl.name))} · ${vlabel(tl.v)}</div>`
-  inner += `<div class="rs">时段 ${fmtT(wallClock(tl.s))} → ${tl.e != null ? fmtT(wallClock(tl.e)) : '进行中'}${tl.dur != null ? '（' + tl.dur + 's）' : ''}</div>`
-  if (tl.why) inner += `<div class="rs">判定依据：${esc(tl.why)}</div>`
-  inner += `<pre>${esc(tl.args || '(无参数)')}</pre>`
-  if (tl.res) inner += `<div class="rs">返回：<pre>${esc(tl.res)}</pre></div>`
+  let inner = `<div class="th">${laneName(lane)} S${n.step} · ${mt('parallel')} ${esc(tlabel(tl.name))} · ${vlabel(tl.v)}</div>`
+  inner += `<div class="rs">${mt('toolInterval',{start:fmtT(wallClock(tl.s)),end:tl.e!=null?fmtT(wallClock(tl.e)):mt('running'),duration:tl.dur??0})}</div>`
+  if (tl.why) inner += `<div class="rs">${mt('rationale')}: ${esc(translateWhy(tl.why))}</div>`
+  inner += `<pre>${esc(tl.args || mt('noArgs'))}</pre>`
+  if (tl.res) inner += `<div class="rs">${mt('result')}:<pre>${esc(tl.res)}</pre></div>`
   inner += imagesHtml(tl.images)
   tip.innerHTML = inner
   tip.style.display = 'block'
@@ -953,32 +979,32 @@ function openPanel(n, lane, isMain){
   panelTexts = []
   document.getElementById('panelTitle').textContent = `${laneName(lane)} S${n.step}`
   const chip = document.getElementById('panelChip')
-  chip.textContent = (isMain ? (n.v === 'answer' ? '最终回答' : '主干推进') : '探索支路') + ' · ' + vlabel(n.v)
+  chip.textContent = (isMain ? (n.v === 'answer' ? mt('finalAnswer') : mt('mainProgress')) : mt('detour')) + ' · ' + vlabel(n.v)
   chip.style.background = VCOLOR[n.v] ?? '#9aa4b8'
   const imageCount = (n.promptImages?.length ?? 0) + (n.answerImages?.length ?? 0) + (n.tools ?? []).reduce((sum, tool) => sum + (tool.images?.length ?? 0), 0)
-  let inner = `<div class="prow">时段 ${fmtT(wallClock(n.s))} → ${fmtT(wallClock(n.e))} · 耗时 ${(n.e - n.s).toFixed(1)}s · ${rzLabel(n)}${n.turn != null ? ' · 第 ' + n.turn + ' 轮' : ''}</div>`
-  if (imageCount > 0) inner += `<div class="prow" style="color:#d97706;font-weight:700">▧ 此步骤包含 ${imageCount} 张图片（见下方）</div>`
-  if (n.model) inner += `<div class="prow">模型：${esc((n.provider ? n.provider + ' / ' : '') + n.model)}${n.stopReason ? ' · ' + esc(n.stopReason) : ''}</div>`
-  if (n.usage) inner += `<div class="prow">Token：输入 ${Number(n.usage.input ?? 0).toLocaleString()} · 输出 ${Number(n.usage.output ?? 0).toLocaleString()} · 缓存读取 ${Number(n.usage.cacheRead ?? 0).toLocaleString()}${n.usage.cost > 0 ? ' · $' + Number(n.usage.cost).toFixed(4) : ''}</div>`
-  if (n.why) inner += `<div class="prow">判定依据：${esc(n.why)}</div>`
+  let inner = `<div class="prow">${mt('interval',{start:fmtT(wallClock(n.s)),end:fmtT(wallClock(n.e)),duration:(n.e-n.s).toFixed(1),reasoning:rzLabel(n)})}${n.turn != null ? ' · ' + mt('turn',{n:n.turn}) : ''}</div>`
+  if (imageCount > 0) inner += `<div class="prow" style="color:#d97706;font-weight:700">${mt('imageNotice',{n:imageCount})}</div>`
+  if (n.model) inner += `<div class="prow">${mt('model')}: ${esc((n.provider ? n.provider + ' / ' : '') + n.model)}${n.stopReason ? ' · ' + esc(n.stopReason) : ''}</div>`
+  if (n.usage) inner += `<div class="prow">${mt('usage',{input:Number(n.usage.input??0).toLocaleString(),output:Number(n.usage.output??0).toLocaleString(),cache:Number(n.usage.cacheRead??0).toLocaleString()})}${n.usage.cost > 0 ? ' · $' + Number(n.usage.cost).toFixed(4) : ''}</div>`
+  if (n.why) inner += `<div class="prow">${mt('rationale')}: ${esc(translateWhy(n.why))}</div>`
   if (!isMain) inner += `<div class="prow" style="color:#d97706">${detourContext(n)}</div>`
-  if (n.prompt || n.promptImages?.length) inner += `<div class="psec"><div class="pt"><b>用户提示</b></div>${n.prompt ? `<pre>${esc(n.prompt)}</pre>` : ''}${imagesHtml(n.promptImages)}</div>`
-  if (n.answer || n.answerImages?.length) inner += `<div class="psec"><div class="pt"><b>模型回答</b></div>${n.answer ? `<pre>${esc(n.answer)}</pre>` : ''}${imagesHtml(n.answerImages)}</div>`
+  if (n.prompt || n.promptImages?.length) inner += `<div class="psec"><div class="pt"><b>${mt('userPrompt')}</b></div>${n.prompt ? `<pre>${esc(n.prompt)}</pre>` : ''}${imagesHtml(n.promptImages)}</div>`
+  if (n.answer || n.answerImages?.length) inner += `<div class="psec"><div class="pt"><b>${mt('modelAnswer')}</b></div>${n.answer ? `<pre>${esc(n.answer)}</pre>` : ''}${imagesHtml(n.answerImages)}</div>`
   for (const tl of n.tools ?? []){
     const args = String(tl.args ?? '')
     const res = String(tl.resFull ?? tl.res ?? '')
     const ai = panelTexts.push(args) - 1
     const ri = panelTexts.push(res) - 1
-    const subagentButton = tl.linkedSessionId ? `<button class="cp subagent-open" data-open-subagent="${esc(tl.linkedSessionId)}">↗ 打开 ${esc(tl.linkedSessionName ?? 'Subagent')} 轨迹</button>` : ''
-    inner += `<div class="psec"><div class="pt"><b>${esc(tlabel(tl.name))}</b><span style="color:#7a869e;font-weight:500">${tl.dur != null && tl.e != null ? tl.dur + 's' : '进行中'}${(tl.v === 'error' || tl.err) ? ' · ✗ 失败' : (tl.v === 'retry' ? ' · ↻ 无效重试' : '')}</span>${subagentButton}<button class="cp" data-ci="${ai}">复制命令</button></div>`
-    inner += `<pre class="args">${args ? esc(args) : '(无参数)'}</pre>`
-    if (tl.why) inner += `<div class="pwhy">判定：${esc(tl.why)}</div>`
-    if (res) inner += `<div class="pt" style="border-top:1px solid var(--line)">返回内容<span style="color:#7a869e;font-weight:500">${res.length >= 5000 ? '前 5000 字' : res.length + ' 字'}</span><button class="cp" data-ci="${ri}">复制返回</button></div><pre>${esc(res)}</pre>`
-    if (tl.images?.length) inner += `<div class="pt" style="border-top:1px solid var(--line)">图片结果 <span style="color:#7a869e;font-weight:500">${tl.images.length} 张</span></div>${imagesHtml(tl.images)}`
+    const subagentButton = tl.linkedSessionId ? `<button class="cp subagent-open" data-open-subagent="${esc(tl.linkedSessionId)}">${mt('openSubagent',{name:esc(tl.linkedSessionName??'Subagent')})}</button>` : ''
+    inner += `<div class="psec"><div class="pt"><b>${esc(tlabel(tl.name))}</b><span style="color:#7a869e;font-weight:500">${tl.dur != null && tl.e != null ? tl.dur + 's' : mt('running')}${(tl.v === 'error' || tl.err) ? ' · ' + mt('failed') : (tl.v === 'retry' ? ' · ' + mt('retry') : '')}</span>${subagentButton}<button class="cp" data-ci="${ai}">${mt('copyCommand')}</button></div>`
+    inner += `<pre class="args">${args ? esc(args) : mt('noArgs')}</pre>`
+    if (tl.why) inner += `<div class="pwhy">${mt('verdict')}: ${esc(translateWhy(tl.why))}</div>`
+    if (res) inner += `<div class="pt" style="border-top:1px solid var(--line)">${mt('resultContent')}<span style="color:#7a869e;font-weight:500">${res.length >= 5000 ? mt('firstChars') : mt('chars',{n:res.length})}</span><button class="cp" data-ci="${ri}">${mt('copyResult')}</button></div><pre>${esc(res)}</pre>`
+    if (tl.images?.length) inner += `<div class="pt" style="border-top:1px solid var(--line)">${mt('imageResults')} <span style="color:#7a869e;font-weight:500">${mt('imageCount',{n:tl.images.length})}</span></div>${imagesHtml(tl.images)}`
     inner += `</div>`
   }
   const rz = n.rzTxtFull ?? n.rzTxt
-  if (rz) inner += `<div class="rzfull"><b>思考摘要</b><br>${esc(rz)}</div>`
+  if (rz) inner += `<div class="rzfull"><b>${mt('reasoning')}</b><br>${esc(rz)}</div>`
   panelBody.innerHTML = inner
   panelBody.scrollTop = 0
   panelEl.classList.add('show')
@@ -1005,7 +1031,7 @@ panelBody.addEventListener('click', ev => {
 function copyText(text, btn){
   const done = ok => {
     const old = btn.textContent
-    btn.textContent = ok ? '已复制' : '复制失败'
+    btn.textContent = ok ? mt('copied') : mt('copyFailed')
     setTimeout(() => { btn.textContent = old }, 1200)
   }
   if (navigator.clipboard && navigator.clipboard.writeText){
@@ -1108,91 +1134,36 @@ window.addEventListener('keydown', e => {
   parent.postMessage({ kind: 'trace-esc' }, '*')
 })
 
-/* ============================ 动画 ============================ */
-let t = 0, playing = false, timer = 0, lastTs = 0
-const speedSel = document.getElementById('speed')
-const curTimeEl = document.getElementById('curTime')
-const seekEl = document.getElementById('seek')
-function prog(s, e){ return e - s <= 0 ? (t >= e ? 1 : 0) : (t - s) / (e - s) }
-
+/* ============================ Static visibility + hover focus ============================ */
 function render(){
   const focus = hoverDet ?? pinnedDet
-  pathEls.forEach(({ el, s, e, det, base, kind }) => {
-    const p = prog(s, e)
-    const len = el.getTotalLength ? el.getTotalLength() : 100
-    if (p >= 1){
-      el.setAttribute('stroke-dasharray', base || '')
-      el.setAttribute('stroke-dashoffset', '0')
-    } else {
-      el.setAttribute('stroke-dasharray', len)
-      el.setAttribute('stroke-dashoffset', len * (1 - Math.max(0, p)))
-    }
+  pathEls.forEach(({ el, det, base, kind }) => {
+    el.setAttribute('stroke-dasharray', base || '')
+    el.setAttribute('stroke-dashoffset', '0')
     if (det){
       const hit = focus && det._id === focus._id
-      if (kind === 'lab'){
-        el.style.opacity = hit ? 1 : 0
-      } else if (focus){
+      if (kind === 'lab') el.style.opacity = hit ? 1 : 0
+      else if (focus){
         el.style.opacity = hit ? 1 : 0.12
         el.classList.toggle('hl-path', hit)
       } else {
-        el.style.opacity = t >= s ? 1 : 0.25
+        el.style.opacity = 1
         el.classList.remove('hl-path')
       }
-    } else {
-      el.style.opacity = t >= s ? 1 : 0.25
-    }
+    } else el.style.opacity = 1
   })
-  nodeEls.forEach(({ el, s, e }) => {
-    const p = prog(s, e)
-    const cs = el.querySelectorAll('.nbar')
-    const op = t < s ? 0 : (t < e ? 0.3 + 0.7 * p : 1)
-    cs.forEach(c => c.setAttribute('opacity', op))
+  nodeEls.forEach(({ el }) => {
+    el.querySelectorAll('.nbar').forEach(bar => bar.setAttribute('opacity', '1'))
     if (el._det && focus){
       el.style.opacity = el._det._id === focus._id ? 1 : 0.18
       el.classList.toggle('hl-node', el._det._id === focus._id)
     } else {
-      el.style.opacity = t >= s ? 1 : 0.3
+      el.style.opacity = 1
       el.classList.remove('hl-node')
     }
   })
-  markEls.forEach(({ el, s, e }) => {
-    el.style.opacity = t >= s ? 1 : 0
-    if (t >= s && t < e) el.style.opacity = (t * 30) % 2 < 1 ? 1 : 0.15
-  })
-  window._cursor.setAttribute('x1', x(t))
-  window._cursor.setAttribute('x2', x(t))
-  curTimeEl.textContent = fmtT(wallClock(t))
-  seekEl.value = Math.round(t / TMAX * 1000)
+  markEls.forEach(({ el }) => { el.style.opacity = 1 })
 }
-function tick(){
-  if (!playing) return
-  const now = Date.now()
-  if (!lastTs) lastTs = now
-  const dt = (now - lastTs) / 1000 * parseFloat(speedSel.value)
-  lastTs = now
-  t = Math.min(t + dt, TMAX)
-  render()
-  if (t >= TMAX){ playing = false; btnPlay.textContent = '▶ 重播' }
-}
-const btnPlay = document.getElementById('btnPlay')
-btnPlay.addEventListener('click', () => {
-  if (t >= TMAX) t = 0
-  playing = !playing
-  btnPlay.textContent = playing ? '⏸ 暂停' : '▶ 播放'
-  lastTs = 0
-  if (playing && !timer) timer = setInterval(tick, 16)
-  else if (!playing && timer){ clearInterval(timer); timer = 0 }
-})
-document.getElementById('btnReset').addEventListener('click', () => {
-  playing = false
-  if (timer){ clearInterval(timer); timer = 0 }
-  btnPlay.textContent = '▶ 播放'
-  t = 0; render()
-})
-seekEl.addEventListener('input', () => {
-  t = parseFloat(seekEl.value) / 1000 * TMAX
-  render()
-})
 
 /* ============================ Server-pushed Pi data ============================ */
 let DATA = null
@@ -1224,10 +1195,6 @@ function renderData(data, opts = {}){
   // Subagent lanes extend vertically and scroll instead of shrinking to a
   // postage stamp.
   svg.style.height = Math.max(scroll.clientHeight, scroll.clientWidth * DATA.viewH / 1560) + 'px'
-  playing = false
-  if (timer){ clearInterval(timer); timer = 0 }
-  btnPlay.textContent = '▶ 播放'
-  t = opts.startAtBeginning ? 0 : TMAX
   build()
   render()
 }
@@ -1271,9 +1238,14 @@ window.addEventListener('message', e => {
   setTheme(e.data.mode)
 })
 
-// 初始主题：宿主消息到达前按系统偏好兜底（独立打开/分享场景）；宿主消息一到以宿主为准
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.kind !== 'trace-language') return
+  applyMazeLanguage(e.data.lang)
+})
+
 readPalette()
 setTheme(typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+applyMazeLanguage('en')
 parent.postMessage({ kind: 'trace-ready' }, location.origin)
 
 </script>

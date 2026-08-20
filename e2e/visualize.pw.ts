@@ -6,6 +6,8 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
   page.on('console', message => { if (message.type() === 'error') errors.push(`console: ${message.text()}`) })
 
   await page.goto('/')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page.locator('#autoRefreshLabel')).toHaveText('Auto refresh')
   await expect(page.locator('.session')).not.toHaveCount(0)
   await page.locator('.session').filter({ hasText: '修复登录重定向' }).click()
   await expect(page.locator('.lane-chip.l1')).toBeVisible()
@@ -27,7 +29,7 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
 
   await firstBar.click()
   await expect(maze.locator('#panel')).toHaveClass(/show/)
-  await expect(maze.locator('#panelBody')).toContainText(/时段|Token/)
+  await expect(maze.locator('#panelBody')).toContainText(/Time|Tokens/)
   await maze.locator('#panelClose').click()
 
   // Parent and child trajectory share one wall-clock canvas with distinct colors.
@@ -56,7 +58,7 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
   const imageBadge = allNodes.nth(errorIndex).locator('.image-badge')
   await expect(imageBadge).toBeVisible()
   await imageBadge.click()
-  await expect(maze.locator('#panelBody')).toContainText('此步骤包含 1 张图片')
+  await expect(maze.locator('#panelBody')).toContainText('This step contains 1 image')
   const panelBody = maze.locator('#panelBody')
   await expect(panelBody.locator('.pimages img')).toBeVisible()
   await expect(panelBody.locator('.pimages img')).toHaveAttribute('src', /^data:image\/png;base64,/)
@@ -68,13 +70,21 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
   await maze.locator('#panelClose').click()
 
   await maze.locator('#fltQIn').fill('pnpm')
-  await expect(maze.locator('#fltCount')).toContainText('命中')
+  await expect(maze.locator('#fltCount')).toContainText('matched')
   await maze.locator('#fltQIn').fill('')
 
   const downloadPromise = page.waitForEvent('download')
   await maze.locator('#btnExpSvg').click()
   const download = await downloadPromise
   expect(download.suggestedFilename()).toMatch(/trace-maze-.*\.svg/)
+
+  await page.locator('#langToggle').click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+  await expect(page.locator('#autoRefreshLabel')).toHaveText('自动刷新')
+  await expect(maze.locator('#btnFit')).toHaveText('⤢ 整图')
+  await page.locator('#langToggle').click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(maze.locator('#btnFit')).toHaveText('⤢ Fit')
 
   await page.locator('#themeToggle').click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', /light|dark/)
@@ -99,7 +109,7 @@ test('opens a linked Subagent trajectory from its parent Agent step', async ({ p
   }
   expect(linkedIndex).toBeGreaterThanOrEqual(0)
   await nodes.nth(linkedIndex).locator('.nbar').first().click()
-  await expect(maze.locator('[data-open-subagent]')).toContainText('打开 Explore#child123 轨迹')
+  await expect(maze.locator('[data-open-subagent]')).toContainText('Open Explore#child123 trajectory')
   await maze.locator('[data-open-subagent]').click()
 
   await expect(page.locator('.lane-title')).toContainText('Explore#child123')
