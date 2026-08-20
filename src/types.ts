@@ -84,6 +84,9 @@ export interface MazeLane {
   anchorMs?: number
   parentId?: string
   parentCallId?: string
+  /** Parent tool call or step that consumed this Subagent's completed result. */
+  returnCallId?: string
+  returnStep?: number
   model: string | null
   provider?: string | null
   preWindow: number

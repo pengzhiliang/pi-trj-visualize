@@ -30,7 +30,7 @@ pi-trj-visualize
 - Reconstructs the Pi v3 append-only entry tree and visualizes only the selected branch.
 - Groups child sessions through `parentSession`; Agent steps open the complete linked Subagent trajectory with a parent-session back button.
 - Matches parallel tool results by `toolCallId`, independent of result order.
-- Renders the parent and direct Subagent trajectories together on one real wall-clock axis, with distinct colors and Agent-call connectors.
+- Renders parent and direct Subagent trajectories on one real wall-clock axis: dashed curves dispatch work downward, and dotted curves return completed results to the parent step that consumed them. No return edge is invented when the result was never consumed.
 - Chains consecutive failed attempts chronologically and draws only one recovery edge to the next successful step.
 - Displays base64 image blocks from user/assistant/tool-result messages, with an image badge on the owning turn.
 - English-first UI with a persistent `EN / 中文` switch shared by the session shell and trajectory iframe.

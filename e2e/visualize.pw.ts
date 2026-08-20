@@ -36,6 +36,8 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
   await expect(maze.locator('.lane-name')).toHaveCount(2)
   await expect(maze.locator('.lane-name').nth(1)).toContainText('Explore#child123')
   await expect(maze.locator('.seg-label')).toHaveCount(0)
+  await expect(maze.locator('.subagent-dispatch')).toHaveCount(1)
+  await expect(maze.locator('.subagent-return')).toHaveCount(1)
   expect(Number(await maze.locator('.subagent-band').getAttribute('width'))).toBeLessThan(600)
   await expect(maze.locator('.detour-chain')).toHaveCount(2)
   await expect(maze.locator('.recovery-path')).toHaveCount(1)

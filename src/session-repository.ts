@@ -272,6 +272,8 @@ export class SessionRepository {
         ? [{ id: record.id, description: typeof record.description === 'string' ? record.description : '' }]
         : []
     })
+    const parentAnchor = data.lanes[0]!.anchorMs ?? Date.parse(indexed.summary.createdAt)
+    const parentNodes = [...data.lanes[0]!.main, ...data.lanes[0]!.detours].sort((left, right) => left.s - right.s)
     const linkedCalls = new Map<string, string>()
     for (const child of subagents) {
       const prefix = child.name?.split('#').at(-1)
@@ -289,9 +291,35 @@ export class SessionRepository {
       if (tool.callId) linkedCalls.set(child.id, tool.callId)
     }
 
+    const returnCalls = new Map<string, string>()
+    const returnSteps = new Map<string, number>()
+    for (const child of subagents) {
+      const prefix = child.name?.split('#').at(-1)
+      if (!prefix) continue
+      const record = records.find(candidate => candidate.id.startsWith(prefix))
+      const identity = record?.id ?? prefix
+      const retrieval = tools.find(candidate => {
+        if (!candidate.name.toLowerCase().endsWith('get_subagent_result')) return false
+        const haystack = `${candidate.args}\n${candidate.resFull ?? candidate.res}`
+        return haystack.includes(identity) || haystack.includes(prefix)
+      })
+      if (retrieval?.callId) {
+        returnCalls.set(child.id, retrieval.callId)
+        continue
+      }
+      // A background notification enters the parent context before its next
+      // assistant step even when no explicit get_subagent_result call exists.
+      const notification = parsed.entries.find(entry =>
+        entry.type === 'custom_message'
+        && String(entry.content ?? '').includes(identity))
+      if (notification === undefined) continue
+      const at = Math.max(0, (Date.parse(notification.timestamp) - parentAnchor) / 1000)
+      const target = parentNodes.find(node => node.s >= at)
+      if (target) returnSteps.set(child.id, target.step)
+    }
+
     // Render direct Subagent sessions as colored lanes on the parent's real
     // wall-clock axis. They remain independently openable for a focused view.
-    const parentAnchor = data.lanes[0]!.anchorMs ?? Date.parse(indexed.summary.createdAt)
     data.lanes[0]!.role = 'main'
     data.lanes[0]!.color = '#2563eb'
     for (let index = 0; index < subagents.length; index += 1) {
@@ -310,6 +338,10 @@ export class SessionRepository {
         lane.parentId = id
         const parentCallId = linkedCalls.get(child.id)
         if (parentCallId) lane.parentCallId = parentCallId
+        const returnCallId = returnCalls.get(child.id)
+        const returnStep = returnSteps.get(child.id)
+        if (returnCallId) lane.returnCallId = returnCallId
+        else if (returnStep !== undefined) lane.returnStep = returnStep
         data.lanes.push(lane)
       } catch {
         // The summary remains available in the picker if a concurrently-written

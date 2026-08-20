@@ -35,6 +35,8 @@
   .ln{width:20px; height:0; border-top:2px solid #fff; display:inline-block}
   .ln.dt{border-color:var(--dead); border-top-style:dashed}
   .ln.bk{border-color:#9aa4b8; border-top-style:dotted}
+  .ln.dispatch{border-color:#0891b2; border-top-style:dashed}
+  .ln.return{border-color:#0891b2; border-top-style:dotted}
   .sw{width:14px; height:10px; border-radius:2px; display:inline-block}
   .sw.er{background:var(--err)} .sw.de{background:var(--dead)} .sw.rt{background:var(--retry)} .sw.an{background:var(--ans)}
   .flt-dim{opacity:.15 !important}
@@ -143,10 +145,10 @@
 'use strict'
 const MAZE_TEXT = {
   en: {
-    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', zoomHint:'Wheel: vertical scroll · Ctrl/⌘+wheel: zoom · Drag: pan', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', userInput:'USER', userInputTitle:'User input · click to inspect', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', copyCommand:'Copy command', copyResult:'Copy result', verdict:'Verdict', resultContent:'Result', firstChars:'first 5,000 chars', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', copied:'Copied', copyFailed:'Copy failed'
+    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', zoomHint:'Wheel: vertical scroll · Ctrl/⌘+wheel: zoom · Drag: pan', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', userInput:'USER', userInputTitle:'User input · click to inspect', dispatchLink:'Dispatch {name}', returnLink:'Subagent result returned to S{step}', dispatchLegend:'Dispatch to Subagent', returnLegend:'Result back to Main', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', copyCommand:'Copy command', copyResult:'Copy result', verdict:'Verdict', resultContent:'Result', firstChars:'first 5,000 chars', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', copied:'Copied', copyFailed:'Copy failed'
   },
   zh: {
-    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', zoomHint:'滚轮纵向浏览 · Ctrl/⌘+滚轮缩放 · 拖拽平移', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', userInput:'用户', userInputTitle:'用户输入 · 点击查看', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', copyCommand:'复制命令', copyResult:'复制返回', verdict:'判定', resultContent:'返回内容', firstChars:'前 5000 字', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', copied:'已复制', copyFailed:'复制失败'
+    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', zoomHint:'滚轮纵向浏览 · Ctrl/⌘+滚轮缩放 · 拖拽平移', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', userInput:'用户', userInputTitle:'用户输入 · 点击查看', dispatchLink:'派发 {name}', returnLink:'Subagent 结果返回到 S{step}', dispatchLegend:'派发到 Subagent', returnLegend:'结果返回 Main', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', copyCommand:'复制命令', copyResult:'复制返回', verdict:'判定', resultContent:'返回内容', firstChars:'前 5000 字', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', copied:'已复制', copyFailed:'复制失败'
   }
 }
 let LANG = 'en'
@@ -386,6 +388,10 @@ function renderLegend(){
     const kind = lane.role === 'subagent' ? mt('subagent') : mt('main')
     lg.push(`<span class="lg"><span class="ln" style="border-color:${laneColor(lane,index)}"></span>${kind} · ${esc(laneName(lane))}${lane.model ? ' · ' + esc(lane.model) : ''}</span>`)
   })
+  if (DATA.lanes.some(lane => lane.role === 'subagent')){
+    lg.push(`<span class="lg"><span class="ln dispatch"></span>${mt('dispatchLegend')}</span>`)
+    if (DATA.lanes.some(lane => lane.returnCallId || lane.returnStep != null)) lg.push(`<span class="lg"><span class="ln return"></span>${mt('returnLegend')}</span>`)
+  }
   lg.push(`<span class="lg" title="${mt('failureChainTitle')}"><span class="ln dt"></span>${mt('failureChain')}</span>`)
   lg.push(`<span class="lg" title="${mt('recoveryTitle')}"><span class="ln bk"></span>${mt('recovery')}</span>`)
   lg.push(`<span class="lg"><span class="sw er"></span>${mt('failed')}</span>`)
@@ -448,18 +454,39 @@ function build(){
   // Connect each parent Agent call to the child trajectory's aligned lane.
   const parentLane = DATA.lanes.find(lane => lane.role !== 'subagent')
   if (parentLane){
+    const parentNodes = [...parentLane.main, ...parentLane.detours]
     for (let index = 0; index < DATA.lanes.length; index++){
       const child = DATA.lanes[index]
       if (child.role !== 'subagent' || !child.parentCallId) continue
-      const source = [...parentLane.main, ...parentLane.detours].find(node => node.tools.some(tool => tool.callId === child.parentCallId))
+      const source = parentNodes.find(node => node.tools.some(tool => tool.callId === child.parentCallId))
       const sourceTool = source?.tools.find(tool => tool.callId === child.parentCallId)
-      const target = [...child.main, ...child.detours].sort((a, b) => a.s - b.s)[0]
-      if (!source || !sourceTool || !target || !xVisible(sourceTool.s, target.s)) continue
+      const childNodes = [...child.main, ...child.detours].sort((a, b) => a.s - b.s)
+      const target = childNodes[0]
+      if (!source || !sourceTool || !target) continue
       const color = laneColor(child, index)
-      const sx = x(sourceTool.s), tx = x(target.s), sy = LAYOUT[parentLane.key].mainY, ty = LAYOUT[child.key].mainY
-      const link = el('path', { d: `M ${sx} ${sy} C ${sx + 22} ${(sy + ty) / 2}, ${tx - 22} ${(sy + ty) / 2}, ${tx} ${ty}`, fill: 'none', stroke: color, 'stroke-width': 1.8, 'stroke-dasharray': '4 4', opacity: 0.8 })
-      gTime.appendChild(link)
-      pathEls.push({ el: link, s: sourceTool.s, e: Math.max(target.s, sourceTool.s + 0.1), base: '4 4' })
+      const sy = LAYOUT[parentLane.key].mainY, ty = LAYOUT[child.key].mainY
+      if (xVisible(sourceTool.s, target.s)){
+        const sx = x(sourceTool.s) + (index - 1) * 2, tx = x(target.s)
+        const link = el('path', { class: 'subagent-dispatch', d: `M ${sx} ${sy} C ${sx + 22} ${(sy + ty) / 2}, ${tx - 22} ${(sy + ty) / 2}, ${tx} ${ty}`, fill: 'none', stroke: color, 'stroke-width': 1.8, 'stroke-dasharray': '4 4', opacity: 0.8, 'marker-end': 'url(#arr)' })
+        const title = el('title', {}); title.textContent = mt('dispatchLink',{name:laneName(child)}); link.appendChild(title)
+        gTime.appendChild(link)
+        pathEls.push({ el: link, s: sourceTool.s, e: Math.max(target.s, sourceTool.s + 0.1), base: '4 4' })
+      }
+
+      const last = childNodes[childNodes.length - 1]
+      const returnNode = child.returnCallId
+        ? parentNodes.find(node => node.tools.some(tool => tool.callId === child.returnCallId))
+        : parentNodes.find(node => node.step === child.returnStep)
+      const returnTool = child.returnCallId ? returnNode?.tools.find(tool => tool.callId === child.returnCallId) : undefined
+      const returnTime = returnTool ? (returnTool.e ?? returnTool.s) : returnNode?.s
+      if (last && returnNode && returnTime != null && returnTime >= last.e && xVisible(last.e, returnTime)){
+        const sx = x(last.e), tx = x(returnTime), rsy = ty, rty = sy
+        const bend = Math.max(24, Math.min(100, Math.abs(tx - sx) * 0.28))
+        const back = el('path', { class: 'subagent-return', d: `M ${sx} ${rsy} C ${sx + bend} ${rsy}, ${tx - bend} ${rty}, ${tx} ${rty}`, fill: 'none', stroke: color, 'stroke-width': 2.1, 'stroke-dasharray': '2 3', opacity: 0.9, 'marker-end': 'url(#arr)' })
+        const title = el('title', {}); title.textContent = mt('returnLink',{step:returnNode.step}); back.appendChild(title)
+        gTime.appendChild(back)
+        pathEls.push({ el: back, s: last.e, e: Math.max(returnTime, last.e + 0.1), base: '2 3' })
+      }
     }
   }
 
