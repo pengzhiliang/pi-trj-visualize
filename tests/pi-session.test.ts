@@ -130,6 +130,19 @@ describe('Pi v3 session parser', () => {
     expect(buildSessionSummary(parsed, { id: 'bash', size: 1, modifiedAt: iso(200) }).turns).toBe(2)
   })
 
+  it('keeps a narrative assistant step on the main path when its only tool fails', () => {
+    const text = [
+      { type: 'session', version: 3, id: 'partial-session', timestamp: iso(0), cwd: '/work/partial' },
+      { type: 'message', id: 'u', parentId: null, timestamp: iso(10), message: { role: 'user', content: 'run it', timestamp: t0 + 10 } },
+      { type: 'message', id: 'a', parentId: 'u', timestamp: iso(1000), message: { role: 'assistant', content: [{ type: 'text', text: 'I will run a focused check.' }, { type: 'toolCall', id: 'call', name: 'bash', arguments: { command: 'slow-check' } }], provider: 'x', model: 'y', stopReason: 'toolUse', timestamp: t0 + 100 } },
+      { type: 'message', id: 'r', parentId: 'a', timestamp: iso(2000), message: { role: 'toolResult', toolCallId: 'call', toolName: 'bash', content: [{ type: 'text', text: 'Command timed out' }], isError: true, timestamp: t0 + 2000 } },
+    ].map(entry).join('\n')
+    const lane = sessionToMaze(parsePiSessionText(text)).lanes[0]!
+    expect(lane.detours).toHaveLength(0)
+    expect(lane.main[0]).toMatchObject({ v: 'ok', partialFailures: 1, answer: 'I will run a focused check.' })
+    expect(lane.main[0]!.tools[0]).toMatchObject({ v: 'error', err: true })
+  })
+
   it('treats a failed Agent model dispatch as an error', () => {
     expect(toolVerdict({ name: 'Agent', res: 'Model not found: "sonnet"', err: false })).toMatchObject({ v: 'error' })
   })

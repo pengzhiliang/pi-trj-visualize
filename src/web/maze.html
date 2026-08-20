@@ -330,7 +330,7 @@ function computeLayout(lanes){
     const groupCount = detourGroups(l).length
     const up = Math.ceil(groupCount / 2)
     const down = Math.floor(groupCount / 2)
-    const maxPar = Math.max(0, ...l.main.map(n => n.tools.length >= 2 ? n.tools.length : 0))
+    const maxPar = Math.max(0, ...l.main.map(n => n.tools.length >= 2 || n.tools.some(tool => tool.v !== 'ok') ? n.tools.length : 0))
     const parH = maxPar > 0 ? maxPar * 9 + 8 : 0
     const mainY = regionTop + 34 + up * LANE_GAP + 48
     const regionBottom = mainY + parH + down * LANE_GAP + 58
@@ -856,11 +856,11 @@ function drawNode(parent, lane, n, y, isMain, idx){
     if (hasUserInput) appendBadge('user-input-badge', userW, '#7c3aed', mt('userInput'), mt('userInputTitle'))
     if (imageCount > 0) appendBadge('image-badge', imageW, '#d97706', imageCount > 1 ? `▧${imageCount}` : '▧', mt('images',{n:imageCount}))
   }
-  // 并行工具分行（瀑布惯例）：一步 ≥2 次调用时，每次调用画成胶囊条下方的细小条，
-  // 按各自起止摆位、按各自判定上色；点击统一打开右侧整步详情面板。
+  // 工具分行（瀑布惯例）：并行调用全部展开；单工具失败也单独画红条，
+  // 避免把工具级失败误读成整个 assistant step 失败。点击统一打开右侧详情面板。
   // 仅主干步分行：支路节点的纵向空间是固定泳道格，保持「+N」标签（详情面板已列全）。
   const parH = isMain ? (LAYOUT[lane.key].parH ?? 0) : 0
-  if (isMain && n.tools.length >= 2){
+  if (isMain && (n.tools.length >= 2 || n.tools.some(tool => tool.v !== 'ok'))){
     n.tools.forEach((tl, ti) => {
       const ty = y + 12 + ti * 9
       const tx0 = x(tl.s), tx1 = x(tl.e ?? tl.s)
@@ -971,6 +971,7 @@ function translateWhy(value){
     .replace(/^无工具调用，模型完成本步/, 'No tool call; model completed the step')
     .replace(/^工具结果尚未写入 session，暂留主干/, 'Tool result is not persisted yet; temporarily kept on the main path')
     .replace(/^(\d+) 次工具调用中 (\d+) 次失败或扑空，其余调用成功，步骤保留在主干/, '$1 tool calls: $2 failed or returned no result; successful siblings keep this step on the main path')
+    .replace(/^(\d+) 次工具调用失败或扑空，但模型同时输出了说明，步骤保留在主干/, '$1 tool call(s) failed or returned no result, but the model also produced a response; the step stays on the main path')
     .replace(/同一操作连续重试 (\d+) 次（其中 (\d+) 次失败），判为盲目重试/, 'Repeated the same operation $1 times ($2 failures); classified as a wasteful retry')
     .replace(/；处于连续重试簇（同一操作共 (\d+) 次）/, '; part of a retry cluster ($1 attempts)')
     .replace(/^模型响应 (\w+)；/, 'Model response ended with $1; ')

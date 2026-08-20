@@ -471,6 +471,13 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
       row.v = 'ok'
       row.partialFailures = unsuccessful.length
       row.why = `${settled.length} 次工具调用中 ${unsuccessful.length} 次失败或扑空，其余调用成功，步骤保留在主干`
+    } else if (unsuccessful.length > 0 && (row.answer !== undefined || (row.answerImages?.length ?? 0) > 0)) {
+      // Tool-use messages may include a substantive model response alongside a
+      // failed call. The step capsule represents the whole assistant message,
+      // so keep it on the main path and leave failure semantics on the tool bar.
+      row.v = 'ok'
+      row.partialFailures = unsuccessful.length
+      row.why = `${settled.length} 次工具调用失败或扑空，但模型同时输出了说明，步骤保留在主干`
     } else {
       row.v = worst.v
       if (worst.why !== undefined) row.why = worst.why

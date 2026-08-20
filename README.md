@@ -30,6 +30,7 @@ pi-trj-visualize
 - Reconstructs the Pi v3 append-only entry tree and visualizes only the selected branch.
 - Groups child sessions through `parentSession`; Agent steps open the complete linked Subagent trajectory with a parent-session back button.
 - Matches parallel tool results by `toolCallId`, independent of result order.
+- Tool verdicts remain tool-level: a tool-use message that also contains a model response stays on the main path even if its only tool fails; the failed call is shown as its own red bar.
 - Renders parent and direct Subagent trajectories on one real wall-clock axis: dashed curves dispatch work downward, and dotted curves return completed results to the parent step that consumed them. No return edge is invented when the result was never consumed.
 - Chains consecutive failed attempts chronologically and draws only one recovery edge to the next successful step.
 - Displays image blocks from user/assistant/tool-result messages, with an image badge on the owning turn; persisted base64 bytes are fetched lazily rather than embedded in the initial payload.
@@ -62,7 +63,7 @@ The server respects `PI_CODING_AGENT_DIR`, `PI_CODING_AGENT_SESSION_DIR`, and `s
 - **Blue path:** successful parent-session checkpoints.
 - **Cyan/orange/pink lanes:** direct Subagents aligned to the parent's real wall clock.
 - **Rounded capsule:** one assistant step; width is its wall-clock duration.
-- **Thin bars below a capsule:** parallel tool calls matched by `toolCallId`.
+- **Thin bars below a capsule:** parallel calls and individual failed calls, each with its own verdict.
 - **Red/gray dashed chain:** consecutive failures, empty searches, or wasteful retries in chronological order.
 - **Gray recovery edge:** the last failed attempt reconnecting to the next successful step.
 - **Purple `USER` badge:** this step owns a user input; click it to open the exact prompt.
