@@ -37,6 +37,8 @@
   .ln.bk{border-color:#9aa4b8; border-top-style:dotted}
   .ln.dispatch{border-color:#0891b2; border-top-style:dashed}
   .ln.return{border-color:#0891b2; border-top-style:dotted}
+  .lane-swatches{width:20px;height:4px;border-radius:2px;display:inline-flex;overflow:hidden}
+  .lane-swatches i{height:100%;flex:1}
   .sw{width:14px; height:10px; border-radius:2px; display:inline-block}
   .sw.er{background:var(--err)} .sw.de{background:var(--dead)} .sw.rt{background:var(--retry)} .sw.an{background:var(--ans)}
   .flt-dim{opacity:.15 !important}
@@ -399,14 +401,21 @@ function colorAlpha(color, alpha){
   return m ? `rgba(${parseInt(m[1],16)},${parseInt(m[2],16)},${parseInt(m[3],16)},${alpha})` : color
 }
 
-/** Rebuild the legend from the parent and inline Subagent lanes. */
+/** Rebuild a compact role legend; full lane names/models already live below. */
 function renderLegend(){
   const lg = []
-  DATA.lanes.forEach((lane, index) => {
-    const kind = lane.role === 'subagent' ? mt('subagent') : mt('main')
-    lg.push(`<span class="lg"><span class="ln" style="border-color:${laneColor(lane,index)}"></span>${kind} · ${esc(laneName(lane))}${lane.model ? ' · ' + esc(lane.model) : ''}</span>`)
-  })
-  if (DATA.lanes.some(lane => lane.role === 'subagent')){
+  const mainLane = DATA.lanes.find(lane => lane.role !== 'subagent')
+  if (mainLane){
+    const detail = `${mt('main')} · ${laneName(mainLane)}${mainLane.model ? ' · ' + mainLane.model : ''}`
+    lg.push(`<span class="lg lane-key" title="${esc(detail)}"><span class="ln" style="border-color:${laneColor(mainLane)}"></span>${mt('main')}</span>`)
+  }
+  const childLanes = DATA.lanes.filter(lane => lane.role === 'subagent')
+  if (childLanes.length){
+    const detail = childLanes.map(lane => `${laneName(lane)}${lane.model ? ' · ' + lane.model : ''}`).join('\n')
+    const swatches = childLanes.map((lane, index) => `<i style="background:${laneColor(lane,index)}"></i>`).join('')
+    lg.push(`<span class="lg lane-key" title="${esc(detail)}"><span class="lane-swatches">${swatches}</span>${mt('subagent')} ×${childLanes.length}</span>`)
+  }
+  if (childLanes.length){
     lg.push(`<span class="lg"><span class="ln dispatch"></span>${mt('dispatchLegend')}</span>`)
     if (DATA.lanes.some(lane => lane.returnCallId || lane.returnStep != null)) lg.push(`<span class="lg"><span class="ln return"></span>${mt('returnLegend')}</span>`)
   }
