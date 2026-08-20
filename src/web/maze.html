@@ -48,7 +48,8 @@
   .controls button:hover{background:var(--hover)}
   .controls select{background:var(--panel); color:var(--txt); border:1px solid var(--border); border-radius:8px; padding:3px 6px}
   .svgwrap{overflow:hidden; flex:1 1 0; min-height:120px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:0 1px 4px rgba(16,24,40,.05); position:relative}
-  #svgscroll{position:absolute; inset:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--line) transparent}
+  #svgscroll{position:absolute; inset:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--line) transparent; outline:none}
+  #svgscroll:focus-visible{box-shadow:inset 0 0 0 2px var(--main-f)}
   #svg{width:100%; height:auto; min-height:100%; display:block; cursor:grab}
   #svg.panning{cursor:grabbing}
   /* 固定详情面板：盖在 svgwrap 右侧，点节点/支路打开 */
@@ -119,7 +120,7 @@
 
 <div class="controls" id="controls" style="display:none">
   <button id="btnFit" title="Reset zoom (or double-click empty space)">⤢ Fit</button>
-  <span class="zoomhint">Wheel: vertical scroll · Ctrl/⌘+wheel: zoom · Drag: pan</span>
+  <span class="zoomhint">Wheel/↑↓: vertical scroll · ←→: time pan · Ctrl/⌘+wheel: zoom · Drag: pan</span>
 </div>
 
 <div class="controls" id="fltbar" style="display:none">
@@ -133,7 +134,7 @@
 </div>
 
 <div class="svgwrap" id="svgwrap" style="display:none">
-<div id="svgscroll"><svg id="svg" viewBox="0 0 1560 1150" preserveAspectRatio="xMidYMin meet"></svg></div>
+<div id="svgscroll" tabindex="0" role="region" aria-label="Trajectory canvas"><svg id="svg" viewBox="0 0 1560 1150" preserveAspectRatio="xMidYMin meet"></svg></div>
 <div id="panel">
   <div class="ph"><b id="panelTitle"></b><span class="vchip" id="panelChip"></span><button class="pclose" id="panelClose" title="Close (Esc)">×</button></div>
   <div class="pbody" id="panelBody"></div>
@@ -145,10 +146,10 @@
 'use strict'
 const MAZE_TEXT = {
   en: {
-    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', zoomHint:'Wheel: vertical scroll · Ctrl/⌘+wheel: zoom · Drag: pan', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', userInput:'USER', userInputTitle:'User input · click to inspect', dispatchLink:'Dispatch {name}', returnLink:'Subagent result returned to S{step}', dispatchLegend:'Dispatch to Subagent', returnLegend:'Result back to Main', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', copyCommand:'Copy command', copyResult:'Copy result', verdict:'Verdict', resultContent:'Result', firstChars:'first 5,000 chars', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', copied:'Copied', copyFailed:'Copy failed'
+    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', zoomHint:'Wheel/↑↓: vertical scroll · ←→: time pan · Ctrl/⌘+wheel: zoom · Drag: pan', canvasLabel:'Trajectory canvas', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', userInput:'USER', userInputTitle:'User input · click to inspect', dispatchLink:'Dispatch {name}', returnLink:'Subagent result returned to S{step}', dispatchLegend:'Dispatch to Subagent', returnLegend:'Result back to Main', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', copyCommand:'Copy command', copyResult:'Copy result', verdict:'Verdict', resultContent:'Result', firstChars:'first 5,000 chars', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', copied:'Copied', copyFailed:'Copy failed'
   },
   zh: {
-    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', zoomHint:'滚轮纵向浏览 · Ctrl/⌘+滚轮缩放 · 拖拽平移', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', userInput:'用户', userInputTitle:'用户输入 · 点击查看', dispatchLink:'派发 {name}', returnLink:'Subagent 结果返回到 S{step}', dispatchLegend:'派发到 Subagent', returnLegend:'结果返回 Main', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', copyCommand:'复制命令', copyResult:'复制返回', verdict:'判定', resultContent:'返回内容', firstChars:'前 5000 字', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', copied:'已复制', copyFailed:'复制失败'
+    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', zoomHint:'滚轮/↑↓纵向浏览 · ←→时间平移 · Ctrl/⌘+滚轮缩放 · 拖拽平移', canvasLabel:'轨迹主画布', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', userInput:'用户', userInputTitle:'用户输入 · 点击查看', dispatchLink:'派发 {name}', returnLink:'Subagent 结果返回到 S{step}', dispatchLegend:'派发到 Subagent', returnLegend:'结果返回 Main', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', copyCommand:'复制命令', copyResult:'复制返回', verdict:'判定', resultContent:'返回内容', firstChars:'前 5000 字', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', copied:'已复制', copyFailed:'复制失败'
   }
 }
 let LANG = 'en'
@@ -362,7 +363,7 @@ function applyMazeLanguage(lang){
   document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en'
   document.title = `Pi Trj Visualize · ${LANG === 'zh' ? '迷宫时间线' : 'Trajectory Timeline'}`
   document.getElementById('btnFit').textContent = mt('fit'); document.getElementById('btnFit').title = mt('fitTitle')
-  document.querySelector('.zoomhint').textContent = mt('zoomHint')
+  document.querySelector('.zoomhint').textContent = mt('zoomHint'); document.getElementById('svgscroll').setAttribute('aria-label',mt('canvasLabel'))
   document.querySelector('#fltbar .fltlab').lastChild.textContent = ' ' + mt('failuresOnly')
   document.getElementById('fltQIn').placeholder = mt('search')
   document.getElementById('btnExpSvg').title = mt('exportSvg'); document.getElementById('btnExpPng').title = mt('exportPng'); document.getElementById('panelClose').title = mt('close')
@@ -1110,8 +1111,11 @@ function setViewWindow(t0, t1){
   const span = Math.max(minSpan, Math.min(t1 - t0, TMAX))
   const s = Math.max(0, Math.min(t0, TMAX - span))
   VIEW = span >= TMAX - 1e-9 ? null : { t0: s, t1: s + span }
+  if (VIEW){ svg.dataset.viewStart=String(VIEW.t0); svg.dataset.viewEnd=String(VIEW.t1) }
+  else { delete svg.dataset.viewStart; delete svg.dataset.viewEnd }
   queueBuild()
 }
+function fitView(){ VIEW=null; delete svg.dataset.viewStart; delete svg.dataset.viewEnd; queueBuild() }
 /** clientX → compressed-timeline time, via the SVG's live screen matrix. */
 function tAtClientX(cx){
   const m = svg.getScreenCTM()
@@ -1130,8 +1134,34 @@ svg.addEventListener('wheel', e => {
   const t0 = tc - (tc - viewT0()) * (ns / span)
   setViewWindow(t0, t0 + ns)
 }, { passive: false })
+const canvasScroll = document.getElementById('svgscroll')
+canvasScroll.addEventListener('keydown', event => {
+  if (!DATA) return
+  const verticalStep = Math.max(80, canvasScroll.clientHeight * (event.shiftKey ? 0.55 : 0.18))
+  if (event.key === 'ArrowUp' || event.key === 'ArrowDown'){
+    canvasScroll.scrollBy({ top: event.key === 'ArrowDown' ? verticalStep : -verticalStep, behavior: event.repeat ? 'auto' : 'smooth' })
+    event.preventDefault(); return
+  }
+  if (event.key === 'PageUp' || event.key === 'PageDown'){
+    canvasScroll.scrollBy({ top: event.key === 'PageDown' ? canvasScroll.clientHeight * 0.85 : -canvasScroll.clientHeight * 0.85, behavior: 'smooth' })
+    event.preventDefault(); return
+  }
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight'){
+    if (!VIEW){
+      const span = Math.max(TMAX * 0.8, 0.5)
+      const start = event.key === 'ArrowRight' ? TMAX - span : 0
+      setViewWindow(start, start + span)
+    } else {
+      const delta = (VIEW.t1 - VIEW.t0) * (event.shiftKey ? 0.3 : 0.1) * (event.key === 'ArrowRight' ? 1 : -1)
+      setViewWindow(VIEW.t0 + delta, VIEW.t1 + delta)
+    }
+    event.preventDefault(); return
+  }
+  if (event.key === 'Home'){ fitView(); canvasScroll.scrollTo({top:0,behavior:'smooth'}); event.preventDefault() }
+})
 let panState = null
 svg.addEventListener('mousedown', e => {
+  canvasScroll.focus({preventScroll:true})
   if (!DATA || e.button !== 0) return
   e.preventDefault()
   panState = { x0: e.clientX, t0: viewT0(), span: viewSpan() }
@@ -1154,10 +1184,9 @@ window.addEventListener('mouseup', () => {
 })
 svg.addEventListener('dblclick', e => {
   if (e.target.closest && e.target.closest('.node')) return
-  VIEW = null
-  queueBuild()
+  fitView()
 })
-document.getElementById('btnFit').addEventListener('click', () => { VIEW = null; queueBuild() })
+document.getElementById('btnFit').addEventListener('click', fitView)
 // Esc closes the pinned detail panel; otherwise it bubbles to the shell.
 window.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
@@ -1211,6 +1240,8 @@ function renderData(data, opts = {}){
     const s = Math.max(0, Math.min(VIEW.t0, TMAX - span))
     VIEW = span >= TMAX - 1e-9 ? null : { t0: s, t1: s + span }
   }
+  if (VIEW){ svg.dataset.viewStart=String(VIEW.t0); svg.dataset.viewEnd=String(VIEW.t1) }
+  else { delete svg.dataset.viewStart; delete svg.dataset.viewEnd }
   LAYOUT = computeLayout(DATA.lanes)
   DATA.viewH = Math.max(...DATA.lanes.map(l => LAYOUT[l.key].regionBottom)) + 30
   renderLegend()

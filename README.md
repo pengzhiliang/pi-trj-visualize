@@ -65,7 +65,7 @@ The server respects `PI_CODING_AGENT_DIR`, `PI_CODING_AGENT_SESSION_DIR`, and `s
 - **Orange `▧` badge:** the owning step contains images; click the badge to open them.
 - **`⏸` seam:** an idle interval longer than 60 seconds was compressed; displayed durations remain truthful.
 
-With multiple lanes, use the wheel for vertical scrolling, `Ctrl/⌘ + wheel` for horizontal time zoom, and drag to pan.
+When the trajectory canvas is focused, use `↑ / ↓` (or Page Up/Down) for vertical scrolling, `← / →` for time panning, and `Home` to fit the whole view. The wheel still scrolls vertically, `Ctrl/⌘ + wheel` zooms time, and drag pans horizontally.
 
 ## Supported Pi data
 
