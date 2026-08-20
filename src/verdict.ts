@@ -2,7 +2,7 @@ import type { MazeTool, Verdict } from './types.js'
 
 export const VERDICT_RULES = {
   ERROR_PATTERNS_STRONG: /\[stderr\].*(Error|Traceback|File ")|\[status=Failed\]|__EXIT__=[1-9]/i,
-  ERROR_PATTERNS_WEAK: /Traceback \(most recent|command not found|Permission denied|No such file|HTTP 40\d|HTTP 50\d|^Error:/i,
+  ERROR_PATTERNS_WEAK: /Traceback \(most recent|command not found|model not found|Permission denied|No such file|HTTP 40\d|HTTP 50\d|^Error:/i,
   ERROR_HEAD_SCAN: 300,
   ERROR_TAIL_SCAN: 1000,
   WRITE_TOOLS: ['write', 'edit', 'todo_write'],

@@ -277,11 +277,12 @@ export class SessionRepository {
       const prefix = child.name?.split('#').at(-1)
       if (!prefix) continue
       const record = records.find(candidate => candidate.id.startsWith(prefix))
-      const tool = tools.find(candidate => {
-        if (!candidate.name.toLowerCase().endsWith('agent') || candidate.linkedSessionId !== undefined) return false
-        if (String(candidate.resFull ?? candidate.res).includes(prefix)) return true
-        return record?.description ? candidate.args.includes(record.description) : false
-      })
+      const availableAgentTools = tools.filter(candidate => candidate.name.toLowerCase().endsWith('agent') && candidate.linkedSessionId === undefined)
+      // Prefer the successful launch result carrying the real Agent ID. A
+      // description-only fallback may point at an earlier failed dispatch
+      // attempt (for example, "Model not found" followed by a retry).
+      const tool = availableAgentTools.find(candidate => String(candidate.resFull ?? candidate.res).includes(prefix))
+        ?? (record?.description ? availableAgentTools.find(candidate => candidate.args.includes(record.description)) : undefined)
       if (tool === undefined) continue
       tool.linkedSessionId = child.id
       tool.linkedSessionName = child.name ?? child.project

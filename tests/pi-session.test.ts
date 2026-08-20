@@ -6,6 +6,7 @@ import {
   resolveBranch,
   sessionToMaze,
 } from '../src/pi-session.js'
+import { toolVerdict } from '../src/verdict.js'
 
 const t0 = Date.parse('2026-08-20T00:00:00.000Z')
 const iso = (offset: number): string => new Date(t0 + offset).toISOString()
@@ -124,6 +125,10 @@ describe('Pi v3 session parser', () => {
     const nodes = sessionToMaze(parsed).lanes[0]!.main
     expect(nodes.map(node => node.turn)).toEqual([1, 2])
     expect(buildSessionSummary(parsed, { id: 'bash', size: 1, modifiedAt: iso(200) }).turns).toBe(2)
+  })
+
+  it('treats a failed Agent model dispatch as an error', () => {
+    expect(toolVerdict({ name: 'Agent', res: 'Model not found: "sonnet"', err: false })).toMatchObject({ v: 'error' })
   })
 
   it('turns model errors into visible failed steps', () => {
