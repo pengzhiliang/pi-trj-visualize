@@ -318,6 +318,7 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
   let step = 0
   let pendingPrompt = ''
   let pendingPromptImages: MazeImage[] = []
+  let pendingPromptAt: number | null = null
   let latestModel: string | null = null
   let latestProvider: string | null = null
 
@@ -334,6 +335,7 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
       turn += 1
       pendingPrompt = textContent(message.content).trim()
       pendingPromptImages = includeImages ? imageContent(message.content) : []
+      pendingPromptAt = rel(messageTime(entry))
       continue
     }
     if (role === 'assistant') {
@@ -370,14 +372,17 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
       const end = Math.max(responseEnd, ...tools.map(tool => tool.e ?? responseEnd))
       const prompt = pendingPrompt
       const promptImages = pendingPromptImages
+      const promptAt = pendingPromptAt
       pendingPrompt = ''
       pendingPromptImages = []
+      pendingPromptAt = null
       rows.push({
-        step, entryId: entry.id, turn: Math.max(turn, 1), s: requestStart, e: end, tools,
+        step, entryId: entry.id, turn: Math.max(turn, 1), s: requestStart, e: end, modelEnd: responseEnd, tools,
         rz: thinking.count, rzTxt: thinking.text.slice(0, 240), rzTxtFull: thinking.text.slice(0, 2000),
         rzTok: usage?.reasoning ?? null, outTok: usage?.output ?? null,
         ...(prompt === '' ? {} : { prompt: clip(prompt, 5000) }),
         ...(promptImages.length === 0 ? {} : { promptImages }),
+        ...(promptAt === null ? {} : { promptAt }),
         ...(answer === '' ? {} : { answer: clip(answer, 5000) }),
         ...(answerImages.length === 0 ? {} : { answerImages }),
         ...(latestModel === null ? {} : { model: latestModel }),

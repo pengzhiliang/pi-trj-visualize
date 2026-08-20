@@ -45,6 +45,10 @@ export interface MazeNode {
   turn: number
   s: number
   e: number
+  /** End of model generation / start of tool execution. */
+  modelEnd?: number
+  /** Timestamp of the user input that started this turn. */
+  promptAt?: number
   tools: MazeTool[]
   rz: number
   rzTxt: string

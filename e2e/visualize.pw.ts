@@ -88,6 +88,21 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
   await expect(maze.locator('#panelBody')).toContainText('This step contains 1 image')
   await expect(maze.locator('#panelBody')).toContainText('successful siblings keep this step on the main path')
   const panelBody = maze.locator('#panelBody')
+  const contentOrder = await panelBody.evaluate(element => {
+    const children = [...element.children]
+    return {
+      user: children.findIndex(child => child.querySelector('.pt b')?.textContent === 'User prompt'),
+      reasoning: children.findIndex(child => child.classList.contains('rzfull')),
+      tool: children.findIndex(child => child.querySelector('.pt b')?.textContent === 'read'),
+    }
+  })
+  expect(contentOrder.user).toBeLessThan(contentOrder.reasoning)
+  expect(contentOrder.reasoning).toBeLessThan(contentOrder.tool)
+  const reasoningDetails = panelBody.locator('.reasoning-details')
+  await expect(reasoningDetails).not.toHaveAttribute('open', '')
+  await expect(reasoningDetails.locator('summary')).toContainText(/\d+ chars/)
+  await reasoningDetails.locator('summary').click()
+  await expect(reasoningDetails.locator('.reasoning-body')).toContainText('intentionally long enough')
   const sectionTitles = await panelBody.locator('.psec > .pt > b').allTextContents()
   expect(sectionTitles).toEqual(expect.arrayContaining(['read', 'bash', 'Agent']))
   await expect(panelBody.locator('.result-details[open]')).toHaveCount(0)

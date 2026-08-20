@@ -88,6 +88,8 @@ function shiftLane(lane: MazeLane, offset: number): void {
   for (const node of [...lane.main, ...lane.detours]) {
     node.s += offset
     node.e += offset
+    if (node.modelEnd !== undefined) node.modelEnd += offset
+    if (node.promptAt !== undefined) node.promptAt += offset
     for (const tool of node.tools) {
       tool.s += offset
       if (tool.e !== null) tool.e += offset

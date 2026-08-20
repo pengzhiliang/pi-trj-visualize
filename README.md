@@ -37,6 +37,7 @@ pi-trj-visualize
 - Resizable session sidebar: drag its right edge, use arrow keys on the separator, or double-click to reset; width persists locally.
 - Includes zoom/pan, filters, full-text search, detail panels, dark mode, and SVG/PNG export.
 - Tool results are collapsed by default and fetched lazily without truncation only when expanded, keeping the tool list scannable.
+- Reasoning summaries longer than 100 characters are collapsed in their true chronological position between the user input and tool execution.
 - Displays native Pi usage (input/output/reasoning/cache tokens and cost).
 - Checks read-only every ten seconds and refreshes active sessions in the background.
 - Uses opaque API IDs and never accepts arbitrary file paths.

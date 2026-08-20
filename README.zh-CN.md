@@ -19,6 +19,7 @@
 - **可调侧栏**：拖动 Session 面板右边缘控制宽度，支持方向键微调和双击复位，宽度会保存在浏览器本地。
 - **完整交互**：主画布聚焦后可用 `↑/↓` 或 Page Up/Down 纵向浏览、`←/→` 平移时间窗口、`Home` 复位；同时支持滚轮、`Ctrl/⌘+滚轮` 缩放、拖拽平移、过滤、搜索、详情面板、SVG/PNG 导出和明暗主题。
 - **结果按需展开**：所有工具结果默认折叠，展开时才通过 opaque ID 接口懒加载完整未截断内容，便于快速浏览工具列表。
+- **Reasoning 折叠**：超过 100 字符的 reasoning 默认折叠，并按真实时间顺序放在 User input 与工具执行之间。
 - **图片结果**：Pi session 中 user/tool result 的 base64 `image` block 会在详情面板直接显示，支持点击展开原图；列表摘要只保留占位文本，不复制图片数据。
 - **Pi 原生统计**：input/output/reasoning/cache token、成本、模型、provider、compaction、parent session。
 - **自动跟随**：每 10 秒静默检查；当前 session 写入新 entry 后后台刷新并保留缩放窗口，不再遮挡当前视图。

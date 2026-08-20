@@ -87,6 +87,14 @@
   #panel .subagent-open{border-color:var(--anchor); color:var(--anchor); font-weight:700; margin-left:auto}
   #panel .subagent-open + .cp{margin-left:0}
   #panel .rzfull{color:var(--dim); background:var(--codebg); border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-top:10px; max-height:none; overflow:visible; user-select:text}
+  #panel .rzhead{display:flex;align-items:center;color:var(--txt);margin-bottom:5px}
+  #panel details.rzfull{padding:0}
+  #panel details.rzfull summary{padding:7px 9px;margin:0;cursor:pointer;list-style:none}
+  #panel details.rzfull summary::-webkit-details-marker{display:none}
+  #panel details.rzfull summary:before{content:'▸';margin-right:7px;color:var(--dim);transition:transform .12s}
+  #panel details.rzfull[open] summary:before{transform:rotate(90deg)}
+  #panel .reasoning-body{border-top:1px solid var(--line);padding:7px 9px;white-space:pre-wrap;word-break:break-word}
+  #panel .section-time{margin-left:auto;color:var(--dim);font-size:10px;font-weight:500}
   .zoomhint{color:var(--dim); font-size:11px; opacity:.6}
   svg text{font-family:"PingFang SC","Hiragino Sans GB",sans-serif}
   .node{cursor:pointer}
@@ -153,10 +161,10 @@
 'use strict'
 const MAZE_TEXT = {
   en: {
-    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', zoomHint:'Wheel/↑↓: vertical scroll · ←→: time pan · Ctrl/⌘+wheel: zoom · Drag: pan', canvasLabel:'Trajectory canvas', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', userInput:'USER', userInputTitle:'User input · click to inspect', dispatchLink:'Dispatch {name}', returnLink:'Subagent result returned to S{step}', dispatchLegend:'Dispatch to Subagent', returnLegend:'Result back to Main', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', verdict:'Verdict', resultContent:'Result', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', openToLoad:'Expand to load the full result', loadingResult:'Loading full result…', loadResultFailed:'Failed to load the full result'
+    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', zoomHint:'Wheel/↑↓: vertical scroll · ←→: time pan · Ctrl/⌘+wheel: zoom · Drag: pan', canvasLabel:'Trajectory canvas', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', userInput:'USER', userInputTitle:'User input · click to inspect', dispatchLink:'Dispatch {name}', returnLink:'Subagent result returned to S{step}', dispatchLegend:'Dispatch to Subagent', returnLegend:'Result back to Main', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', atTime:'at {time}', timeRange:'{start} → {end}', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', verdict:'Verdict', resultContent:'Result', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', openToLoad:'Expand to load the full result', loadingResult:'Loading full result…', loadResultFailed:'Failed to load the full result'
   },
   zh: {
-    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', zoomHint:'滚轮/↑↓纵向浏览 · ←→时间平移 · Ctrl/⌘+滚轮缩放 · 拖拽平移', canvasLabel:'轨迹主画布', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', userInput:'用户', userInputTitle:'用户输入 · 点击查看', dispatchLink:'派发 {name}', returnLink:'Subagent 结果返回到 S{step}', dispatchLegend:'派发到 Subagent', returnLegend:'结果返回 Main', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', verdict:'判定', resultContent:'返回内容', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', openToLoad:'展开后加载完整结果', loadingResult:'正在加载完整结果…', loadResultFailed:'完整结果加载失败'
+    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', zoomHint:'滚轮/↑↓纵向浏览 · ←→时间平移 · Ctrl/⌘+滚轮缩放 · 拖拽平移', canvasLabel:'轨迹主画布', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', userInput:'用户', userInputTitle:'用户输入 · 点击查看', dispatchLink:'派发 {name}', returnLink:'Subagent 结果返回到 S{step}', dispatchLegend:'派发到 Subagent', returnLegend:'结果返回 Main', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', atTime:'时间 {time}', timeRange:'{start} → {end}', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', verdict:'判定', resultContent:'返回内容', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', openToLoad:'展开后加载完整结果', loadingResult:'正在加载完整结果…', loadResultFailed:'完整结果加载失败'
   }
 }
 let LANG = 'en'
@@ -961,12 +969,12 @@ function showTipFor(d){
   if (d.why) inner += `<div class="rs">${mt('rationale')}: ${esc(translateWhy(d.why))}</div>`
   inner += `<div class="rs">${mt('interval',{start:fmtT(wallClock(d.s)),end:fmtT(wallClock(d.e)),duration:(d.e-d.s).toFixed(1),reasoning:rzLabel(d)})}</div>`
   inner += `<div class="back">${detourContext(d)}</div>`
+  if (d.rzTxt) inner += `<div class="rs">${mt('reasoning')}: ${esc(d.rzTxt)}</div>`
   d.tools.forEach(t => {
     inner += `<pre><b>${tlabel(t.name)}</b> (${t.dur}s) ${t.v === 'error' ? '✗' : (t.v === 'retry' ? '↻' : '')}\n${esc(t.args)}</pre>`
     if (t.res) inner += `<div class="rs">${mt('result')}:<pre>${esc(t.res)}</pre></div>`
     inner += imagesHtml(t.images)
   })
-  if (d.rzTxt) inner += `<div class="rs">${mt('reasoning')}: ${esc(d.rzTxt)}</div>`
   tip.innerHTML = inner
   tip.style.display = 'block'
 }
@@ -981,6 +989,7 @@ function onHover(e){
   inner += `<div class="rs">${mt('interval',{start:fmtT(wallClock(n.s)),end:fmtT(wallClock(n.e)),duration:(n.e-n.s).toFixed(1),reasoning:rzLabel(n)})}</div>`
   if (n.prompt) inner += `<div class="rs">${mt('user')}: ${esc(n.prompt.slice(0, 360))}</div>`
   inner += imagesHtml(n.promptImages)
+  if (n.rzTxt) inner += `<div class="rs">${mt('reasoning')}: ${esc(n.rzTxt)}</div>`
   if (!g._isMain) inner += `<div class="back">${detourContext(n)}</div>`
   n.tools.forEach(t => {
     inner += `<pre><b>${tlabel(t.name)}</b> (${t.dur}s) ${t.v === 'error' ? '✗' : (t.v === 'retry' ? '↻' : '')}\n${esc(t.args)}</pre>`
@@ -988,7 +997,6 @@ function onHover(e){
     inner += imagesHtml(t.images)
   })
   if (n.answer) inner += `<div class="rs">${mt('response')}: ${esc(n.answer.slice(0, 500))}</div>`
-  if (n.rzTxt) inner += `<div class="rs">${mt('reasoning')}: ${esc(n.rzTxt)}</div>`
   tipEl.innerHTML = inner
   tipEl.style.display = 'block'
   placeTip(e)
@@ -1037,14 +1045,23 @@ function openPanel(n, lane, isMain){
   if (n.usage) inner += `<div class="prow">${mt('usage',{input:Number(n.usage.input??0).toLocaleString(),output:Number(n.usage.output??0).toLocaleString(),cache:Number(n.usage.cacheRead??0).toLocaleString()})}${n.usage.cost > 0 ? ' · $' + Number(n.usage.cost).toFixed(4) : ''}</div>`
   if (n.why) inner += `<div class="prow">${mt('rationale')}: ${esc(translateWhy(n.why))}</div>`
   if (!isMain) inner += `<div class="prow" style="color:#d97706">${detourContext(n)}</div>`
-  if (n.prompt || n.promptImages?.length) inner += `<div class="psec"><div class="pt"><b>${mt('userPrompt')}</b></div>${n.prompt ? `<pre>${esc(n.prompt)}</pre>` : ''}${imagesHtml(n.promptImages)}</div>`
-  if (n.answer || n.answerImages?.length) inner += `<div class="psec"><div class="pt"><b>${mt('modelAnswer')}</b></div>${n.answer ? `<pre>${esc(n.answer)}</pre>` : ''}${imagesHtml(n.answerImages)}</div>`
+  if (n.prompt || n.promptImages?.length) inner += `<div class="psec"><div class="pt"><b>${mt('userPrompt')}</b>${n.promptAt != null ? `<span class="section-time">${mt('atTime',{time:fmtT(wallClock(n.promptAt))})}</span>` : ''}</div>${n.prompt ? `<pre>${esc(n.prompt)}</pre>` : ''}${imagesHtml(n.promptImages)}</div>`
+  const rz = n.rzTxtFull ?? n.rzTxt
+  const modelEnd = n.modelEnd ?? n.tools?.[0]?.s ?? n.s
+  if (rz){
+    const reasoningTime = mt('timeRange',{start:fmtT(wallClock(n.s)),end:fmtT(wallClock(modelEnd))})
+    inner += rz.length > 100
+      ? `<details class="rzfull reasoning-details"><summary class="rzhead"><b>${mt('reasoning')}</b><span class="section-time">${mt('chars',{n:rz.length})} · ${reasoningTime}</span></summary><div class="reasoning-body">${esc(rz)}</div></details>`
+      : `<div class="rzfull"><div class="rzhead"><b>${mt('reasoning')}</b><span class="section-time">${reasoningTime}</span></div>${esc(rz)}</div>`
+  }
+  if (n.answer || n.answerImages?.length) inner += `<div class="psec"><div class="pt"><b>${mt('modelAnswer')}</b><span class="section-time">${mt('atTime',{time:fmtT(wallClock(modelEnd))})}</span></div>${n.answer ? `<pre>${esc(n.answer)}</pre>` : ''}${imagesHtml(n.answerImages)}</div>`
   for (const tl of n.tools ?? []){
     const args = String(tl.args ?? '')
     const inlineResult = String(tl.resFull ?? tl.res ?? '')
     const resultLength = tl.resultLength ?? inlineResult.length
     const subagentButton = tl.linkedSessionId ? `<button class="cp subagent-open" data-open-subagent="${esc(tl.linkedSessionId)}">${mt('openSubagent',{name:esc(tl.linkedSessionName??'Subagent')})}</button>` : ''
-    inner += `<div class="psec"><div class="pt"><b>${esc(tlabel(tl.name))}</b><span style="color:#7a869e;font-weight:500">${tl.dur != null && tl.e != null ? tl.dur + 's' : mt('running')}${(tl.v === 'error' || tl.err) ? ' · ' + mt('failed') : (tl.v === 'retry' ? ' · ' + mt('retry') : '')}</span>${subagentButton}</div>`
+    const toolTime = tl.e != null ? `${mt('timeRange',{start:fmtT(wallClock(tl.s)),end:fmtT(wallClock(tl.e))})} · ${tl.dur}s` : mt('running')
+    inner += `<div class="psec"><div class="pt"><b>${esc(tlabel(tl.name))}</b><span style="color:#7a869e;font-weight:500">${toolTime}${(tl.v === 'error' || tl.err) ? ' · ' + mt('failed') : (tl.v === 'retry' ? ' · ' + mt('retry') : '')}</span>${subagentButton}</div>`
     inner += `<pre class="args">${args ? esc(args) : mt('noArgs')}</pre>`
     if (tl.why) inner += `<div class="pwhy">${mt('verdict')}: ${esc(translateWhy(tl.why))}</div>`
     if (resultLength > 0 || tl.images?.length){
@@ -1054,8 +1071,6 @@ function openPanel(n, lane, isMain){
     }
     inner += `</div>`
   }
-  const rz = n.rzTxtFull ?? n.rzTxt
-  if (rz) inner += `<div class="rzfull"><b>${mt('reasoning')}</b><br>${esc(rz)}</div>`
   panelBody.innerHTML = inner
   panelBody.scrollTop = 0
   panelEl.classList.add('show')
