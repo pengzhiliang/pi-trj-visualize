@@ -97,6 +97,24 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
       })
       return
     }
+    if (url.pathname === '/api/tool-result') {
+      const id = url.searchParams.get('id')
+      const callId = url.searchParams.get('callId')
+      if (!id || !callId) {
+        json(response, 400, { error: 'Missing session id or call id' })
+        return
+      }
+      try {
+        const text = await repository.toolResult(id, callId, url.searchParams.get('leaf') ?? undefined)
+        json(response, 200, { text, length: text.length })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (message === 'SESSION_NOT_FOUND' || message === 'TOOL_RESULT_NOT_FOUND') json(response, 404, { error: 'Tool result not found' })
+        else if (message.startsWith('SESSION_INVALID:')) json(response, 422, { error: message.slice('SESSION_INVALID:'.length) })
+        else throw error
+      }
+      return
+    }
     if (url.pathname === '/api/session') {
       const id = url.searchParams.get('id')
       if (!id) {

@@ -23,7 +23,11 @@ export interface MazeTool {
   e: number | null
   args: string
   res: string
+  /** Inline full result for synthetic/non-addressable tools only. */
   resFull?: string
+  /** Lazy same-origin endpoint for the untruncated persisted result. */
+  resultRef?: string
+  resultLength?: number
   images?: MazeImage[]
   err: boolean
   dur: number
@@ -57,6 +61,8 @@ export interface MazeNode {
   usage?: PiUsage
   v: NodeVerdict
   why?: string
+  /** Number of failed/dead-end/retry tool calls in an otherwise successful mixed step. */
+  partialFailures?: number
   attach?: number
 }
 

@@ -278,13 +278,23 @@ function toolResultText(message: Record<string, unknown>): string {
   return isRecord(message.details) ? toolArguments(message.details) : ''
 }
 
+/** Resolve one persisted tool result without truncation for the lazy detail API. */
+export function sessionToolResultText(session: ParsedPiSession, callId: string, leafId = session.activeLeafId): string | null {
+  for (const entry of resolveBranch(session, leafId)) {
+    const message = messageOf(entry)
+    if (message?.role === 'toolResult' && message.toolCallId === callId) return toolResultText(message)
+    if (message?.role === 'bashExecution' && callId === `bash:${entry.id}`) return asString(message.output)
+  }
+  return null
+}
+
 function modelErrorTool(entry: SessionEntry, message: Record<string, unknown>, s: number, e: number): MazeTool {
   const stopReason = asString(message.stopReason, 'error')
   const result = asString(message.errorMessage, `模型请求以 ${stopReason} 结束`)
   const verdict = toolVerdict({ name: 'model', res: result, err: true })
   return {
     k: 't', name: 'model', s, e, args: `${asString(message.provider, 'unknown')}/${asString(message.model, 'unknown')}`,
-    res: result.slice(0, 380), resFull: result.slice(0, 5000), err: true, dur: roundT(Math.max(0, e - s)),
+    res: result.slice(0, 380), resFull: result, resultLength: result.length, err: true, dur: roundT(Math.max(0, e - s)),
     v: verdict.v, why: `模型响应 ${stopReason}；${verdict.why}`, callId: `model:${entry.id}`,
   }
 }
@@ -346,7 +356,7 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
           : toolVerdict({ name: asString(block.name, '?'), res: fullResult, err: error })
         tools.push({
           k: 't', name: asString(block.name, '?'), s: responseEnd, e: end,
-          args: toolArguments(block.arguments), res: fullResult.slice(0, 380), resFull: fullResult.slice(0, 5000),
+          args: toolArguments(block.arguments), res: fullResult.slice(0, 380), resFull: fullResult.slice(0, 5000), resultLength: fullResult.length,
           ...(resultImages.length === 0 ? {} : { images: resultImages }),
           err: error, dur: end === null ? 0 : roundT(Math.max(0, end - responseEnd)), v: verdict.v, why: verdict.why, callId,
         })
@@ -388,7 +398,7 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
       const error = finiteNumber(message.exitCode) !== 0 || message.cancelled === true
       const verdict = toolVerdict({ name: 'bash', res: output, err: error })
       const tool: MazeTool = {
-        k: 't', name: 'bash', s: start, e: end, args: asString(message.command), res: output.slice(0, 380), resFull: output.slice(0, 5000),
+        k: 't', name: 'bash', s: start, e: end, args: asString(message.command), res: output.slice(0, 380), resFull: output.slice(0, 5000), resultLength: output.length,
         err: error, dur: roundT(end - start), v: verdict.v, why: verdict.why, callId: `bash:${entry.id}`,
       }
       rows.push({
@@ -407,10 +417,21 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
       continue
     }
     const settled = row.tools.filter(tool => tool.e !== null)
+    const pending = row.tools.length - settled.length
+    const successful = settled.filter(tool => tool.v === 'ok')
+    const unsuccessful = settled.filter(tool => tool.v !== 'ok')
     const worst = stepVerdict(settled)
-    if (worst === null) {
+    if (pending > 0 || worst === null) {
       row.v = 'ok'
       row.why = '工具结果尚未写入 session，暂留主干'
+      if (unsuccessful.length > 0) row.partialFailures = unsuccessful.length
+    } else if (successful.length > 0 && unsuccessful.length > 0) {
+      // A parallel/multi-tool assistant step can make useful progress even when
+      // one sibling call fails. Keep the large step capsule on the main path;
+      // each tool's thin waterfall bar carries its own red/gray verdict.
+      row.v = 'ok'
+      row.partialFailures = unsuccessful.length
+      row.why = `${settled.length} 次工具调用中 ${unsuccessful.length} 次失败或扑空，其余调用成功，步骤保留在主干`
     } else {
       row.v = worst.v
       if (worst.why !== undefined) row.why = worst.why

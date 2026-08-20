@@ -36,6 +36,7 @@ pi-trj-visualize
 - English-first UI with a persistent `EN / 中文` switch shared by the session shell and trajectory iframe.
 - Resizable session sidebar: drag its right edge, use arrow keys on the separator, or double-click to reset; width persists locally.
 - Includes zoom/pan, filters, full-text search, detail panels, dark mode, and SVG/PNG export.
+- Tool results are collapsed by default and fetched lazily without truncation only when expanded, keeping the tool list scannable.
 - Displays native Pi usage (input/output/reasoning/cache tokens and cost).
 - Checks read-only every ten seconds and refreshes active sessions in the background.
 - Uses opaque API IDs and never accepts arbitrary file paths.
@@ -104,7 +105,7 @@ src/web/maze.html           SVG trajectory renderer and EN/ZH details
 - `/api/session` accepts only opaque IDs from the scan index, never arbitrary paths.
 - The default listener is `127.0.0.1` and validates loopback `Host` headers against DNS rebinding.
 - Initial parsing uses at most six workers; the list cache stores summaries only and full trees use a four-entry LRU.
-- Text tool results are capped at 5,000 characters and reasoning at 2,000 characters in browser payloads.
+- Full tool results are omitted from the initial browser payload and fetched through an opaque-ID endpoint only when the user expands a result; reasoning excerpts remain capped at 2,000 characters.
 
 For Chinese documentation, see [README.zh-CN.md](README.zh-CN.md).
 

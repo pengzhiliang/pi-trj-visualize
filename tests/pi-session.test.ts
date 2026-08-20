@@ -5,6 +5,7 @@ import {
   parsePiSessionText,
   resolveBranch,
   sessionToMaze,
+  sessionToolResultText,
 } from '../src/pi-session.js'
 import { toolVerdict } from '../src/verdict.js'
 
@@ -67,8 +68,9 @@ describe('Pi v3 session parser', () => {
     const lane = data.lanes[0]!
     expect(lane.stats.steps).toBe(2)
     expect(lane.stats.tools).toBe(2)
-    expect(lane.detours).toHaveLength(1)
-    const first = lane.detours[0]!
+    expect(lane.detours).toHaveLength(0)
+    const first = lane.main.find(node => node.entryId === 'assistant-1')!
+    expect(first).toMatchObject({ v: 'ok', partialFailures: 1 })
     expect(first.s).toBe(0.9)
     expect(first.e).toBe(3.9)
     expect(first.tools.map(tool => [tool.callId, tool.e])).toEqual([
@@ -77,6 +79,7 @@ describe('Pi v3 session parser', () => {
     ])
     expect(first.tools.find(tool => tool.callId === 'read-call')).toMatchObject({ v: 'ok', err: false, images: [{ mimeType: 'image/png', data: 'aGVsbG8=' }] })
     expect(first.tools.find(tool => tool.callId === 'bash-call')).toMatchObject({ v: 'error', err: true })
+    expect(sessionToolResultText(parsePiSessionText(fixture()), 'read-call')).toContain('export const answer = 42')
   })
 
   it('preserves prompt, answer, thinking and native Pi usage', () => {

@@ -6,6 +6,7 @@ import {
   buildSessionSummary,
   listBranches,
   parsePiSessionText,
+  sessionToolResultText,
   sessionToMaze,
   type ParsedPiSession,
 } from './pi-session.js'
@@ -96,6 +97,18 @@ function shiftLane(lane: MazeLane, offset: number): void {
 
 function laneEnd(lane: MazeLane): number {
   return Math.max(0, ...[...lane.main, ...lane.detours].map(node => node.e))
+}
+
+function attachLazyResults(lane: MazeLane, sessionId: string, leafId?: string): void {
+  for (const node of [...lane.main, ...lane.detours]) {
+    for (const tool of node.tools) {
+      if (!tool.callId || tool.callId.startsWith('model:') || (tool.resultLength ?? 0) === 0) continue
+      const params = new URLSearchParams({ id: sessionId, callId: tool.callId })
+      if (leafId) params.set('leaf', leafId)
+      tool.resultRef = `/api/tool-result?${params.toString()}`
+      delete tool.resFull
+    }
+  }
 }
 
 export class SessionRepository {
@@ -247,6 +260,17 @@ export class SessionRepository {
     return parsed
   }
 
+  async toolResult(id: string, callId: string, leafId?: string): Promise<string> {
+    await this.scan()
+    const indexed = this.#index.get(id)
+    if (indexed === undefined) throw new Error('SESSION_NOT_FOUND')
+    if (indexed.summary.error !== undefined) throw new Error(`SESSION_INVALID:${indexed.summary.error}`)
+    const parsed = await this.#parsedDetail(indexed)
+    const result = sessionToolResultText(parsed, callId, leafId ?? parsed.activeLeafId)
+    if (result === null) throw new Error('TOOL_RESULT_NOT_FOUND')
+    return result
+  }
+
   async detail(id: string, leafId?: string): Promise<SessionDetail> {
     await this.scan()
     const indexed = this.#index.get(id)
@@ -342,12 +366,14 @@ export class SessionRepository {
         const returnStep = returnSteps.get(child.id)
         if (returnCallId) lane.returnCallId = returnCallId
         else if (returnStep !== undefined) lane.returnStep = returnStep
+        attachLazyResults(lane, child.id, childParsed.activeLeafId ?? undefined)
         data.lanes.push(lane)
       } catch {
         // The summary remains available in the picker if a concurrently-written
         // child cannot be parsed for inline rendering yet.
       }
     }
+    attachLazyResults(data.lanes[0]!, id, selectedLeafId)
     data.Tmax = Math.max(60, ...data.lanes.map(laneEnd))
     return {
       session: indexed.summary,
