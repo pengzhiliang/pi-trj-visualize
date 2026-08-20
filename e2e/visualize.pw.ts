@@ -127,10 +127,29 @@ test('opens a linked Subagent trajectory from its parent Agent step', async ({ p
   await expect(page.locator('.lane-title')).toContainText('修复登录重定向')
 })
 
+test('resizes and persists the session sidebar width', async ({ page }) => {
+  await page.goto('/')
+  const sidebar = page.locator('.sidebar')
+  const handle = page.locator('#sidebarResize')
+  const initial = (await sidebar.boundingBox())!.width
+  const box = (await handle.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + 100)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + 110, box.y + 100, { steps: 5 })
+  await page.mouse.up()
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThan(initial + 90)
+  const resized = (await sidebar.boundingBox())!.width
+  await page.reload()
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeCloseTo(resized, 0)
+  await page.locator('#sidebarResize').dblclick()
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeCloseTo(370, 0)
+})
+
 test('opens the session drawer on a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 700, height: 820 })
   await page.goto('/')
   await expect(page.locator('#mobileMenu')).toBeVisible()
+  await expect(page.locator('#sidebarResize')).toBeHidden()
   await page.locator('#mobileMenu').click()
   await expect(page.locator('body')).toHaveClass(/nav-open/)
   await expect(page.locator('.session').first()).toBeVisible()

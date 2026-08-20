@@ -34,6 +34,7 @@ pi-trj-visualize
 - Chains consecutive failed attempts chronologically and draws only one recovery edge to the next successful step.
 - Displays base64 image blocks from user/assistant/tool-result messages, with an image badge on the owning turn.
 - English-first UI with a persistent `EN / 中文` switch shared by the session shell and trajectory iframe.
+- Resizable session sidebar: drag its right edge, use arrow keys on the separator, or double-click to reset; width persists locally.
 - Includes zoom/pan, filters, full-text search, detail panels, dark mode, and SVG/PNG export.
 - Displays native Pi usage (input/output/reasoning/cache tokens and cost).
 - Checks read-only every ten seconds and refreshes active sessions in the background.

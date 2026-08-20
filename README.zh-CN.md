@@ -16,6 +16,7 @@
 - **并行工具瀑布**：同一次 assistant response 里的多个 tool call 按 `toolCallId` 精确配对，即使结果乱序也不会串线。
 - **主会话 + Subagent 同轴视图**：父会话与所有直接 Subagent 按真实启动时间放在同一墙钟轴；虚线向下表示派发，点线向上连接到真正消费结果的父步骤。若结果从未返回或未被消费，则不会凭空画返回线。
 - **双语界面**：默认英文，顶部 `EN / 中文` 可持久切换，Session shell 与轨迹 iframe 同步更新。
+- **可调侧栏**：拖动 Session 面板右边缘控制宽度，支持方向键微调和双击复位，宽度会保存在浏览器本地。
 - **完整交互**：多轨迹时滚轮纵向浏览、`Ctrl/⌘+滚轮` 横向缩放、拖拽平移、失败过滤、工具过滤、命令/结果/思考搜索、详情面板、SVG/PNG 导出、明暗主题。
 - **图片结果**：Pi session 中 user/tool result 的 base64 `image` block 会在详情面板直接显示，支持点击展开原图；列表摘要只保留占位文本，不复制图片数据。
 - **Pi 原生统计**：input/output/reasoning/cache token、成本、模型、provider、compaction、parent session。
