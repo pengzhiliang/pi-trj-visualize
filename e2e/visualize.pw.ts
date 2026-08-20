@@ -22,10 +22,8 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
 
   const firstBar = maze.locator('.node .nbar').first()
   await firstBar.hover()
-  await expect(maze.locator('#tip')).toBeVisible()
-  await maze.locator('#tip').hover()
-  await page.waitForTimeout(650)
-  await expect(maze.locator('#tip')).toBeVisible()
+  await page.waitForTimeout(150)
+  await expect(maze.locator('#tip')).toBeHidden()
 
   await firstBar.click()
   await expect(maze.locator('#panel')).toHaveClass(/show/)

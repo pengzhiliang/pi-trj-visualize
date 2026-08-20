@@ -848,7 +848,7 @@ function drawNode(parent, lane, n, y, isMain, idx){
     if (imageCount > 0) appendBadge('image-badge', imageW, '#d97706', imageCount > 1 ? `▧${imageCount}` : '▧', mt('images',{n:imageCount}))
   }
   // 并行工具分行（瀑布惯例）：一步 ≥2 次调用时，每次调用画成胶囊条下方的细小条，
-  // 按各自起止摆位、按各自判定上色；悬停显示该调用详情，点击仍开整步面板。
+  // 按各自起止摆位、按各自判定上色；点击统一打开右侧整步详情面板。
   // 仅主干步分行：支路节点的纵向空间是固定泳道格，保持「+N」标签（详情面板已列全）。
   const parH = isMain ? (LAYOUT[lane.key].parH ?? 0) : 0
   if (isMain && n.tools.length >= 2){
@@ -905,6 +905,9 @@ function drawNode(parent, lane, n, y, isMain, idx){
   return { g }
 }
 
+// Hover previews duplicate the pinned right-hand detail panel and are disabled.
+// Keep the implementation behind one switch in case a compact preview is revisited.
+const HOVER_PREVIEW_ENABLED = false
 let hoverDet = null
 let pinnedDet = null   // detour pinned by the open detail panel; keeps its highlight while hovering elsewhere
 const tipEl = document.getElementById('tip')
@@ -934,13 +937,14 @@ tipEl.addEventListener('mouseleave', scheduleTipHide)
 tipEl.addEventListener('wheel', e => e.stopPropagation(), { passive: true })
 tipEl.addEventListener('mousedown', e => e.stopPropagation())
 function onArcHover(e){
+  if (!HOVER_PREVIEW_ENABLED) return
   cancelTipHide()
   hoverDet = e.currentTarget._det
   showTipFor(hoverDet)
   placeTip(e)
   render()
 }
-function offArcHover(){ scheduleTipHide() }
+function offArcHover(){ if (HOVER_PREVIEW_ENABLED) scheduleTipHide() }
 function translateWhy(value){
   const why = String(value ?? '')
   if (LANG === 'zh') return why
@@ -986,6 +990,7 @@ function showTipFor(d){
   tip.style.display = 'block'
 }
 function onHover(e){
+  if (!HOVER_PREVIEW_ENABLED) return
   cancelTipHide()
   const g = e.currentTarget, n = g._node
   hoverDet = n._id ? n : null
@@ -1008,9 +1013,10 @@ function onHover(e){
   tipEl.style.display = 'block'
   placeTip(e)
 }
-function offHover(){ scheduleTipHide() }
-/* 并行分行小条的悬停：只讲这一次调用；离开即收（回到胶囊条重新悬停可看整步）。 */
+function offHover(){ if (HOVER_PREVIEW_ENABLED) scheduleTipHide() }
+/* Parallel sub-bars use the same click-to-pin detail panel as their parent step. */
 function onToolHover(e){
+  if (!HOVER_PREVIEW_ENABLED) return
   cancelTipHide()
   const bar = e.currentTarget
   const tl = bar._tool, lane = bar._toolLane, n = bar._toolNode
@@ -1025,7 +1031,7 @@ function onToolHover(e){
   tip.style.display = 'block'
   placeTip(e)
 }
-function offToolHover(){ scheduleTipHide() }
+function offToolHover(){ if (HOVER_PREVIEW_ENABLED) scheduleTipHide() }
 function esc(s){
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
