@@ -33,6 +33,7 @@ pi-trj-visualize
 - Renders the parent and direct Subagent trajectories together on one real wall-clock axis, with distinct colors and Agent-call connectors.
 - Chains consecutive failed attempts chronologically and draws only one recovery edge to the next successful step.
 - Displays base64 image blocks from user/assistant/tool-result messages, with an image badge on the owning turn.
+- English-first UI with a persistent `EN / 中文` switch shared by the session shell and trajectory iframe.
 - Includes zoom/pan, filters, full-text search, detail panels, dark mode, and SVG/PNG export.
 - Displays native Pi usage (input/output/reasoning/cache tokens and cost).
 - Checks read-only every ten seconds and refreshes active sessions in the background.
@@ -59,6 +60,7 @@ The server respects `PI_CODING_AGENT_DIR`, `PI_CODING_AGENT_SESSION_DIR`, and `s
 - **Thin bars below a capsule:** parallel tool calls matched by `toolCallId`.
 - **Red/gray dashed chain:** consecutive failures, empty searches, or wasteful retries in chronological order.
 - **Gray recovery edge:** the last failed attempt reconnecting to the next successful step.
+- **Purple `USER` badge:** this step owns a user input; click it to open the exact prompt.
 - **Orange `▧` badge:** the owning step contains images; click the badge to open them.
 - **`⏸` seam:** an idle interval longer than 60 seconds was compressed; displayed durations remain truthful.
 

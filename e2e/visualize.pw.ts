@@ -35,6 +35,7 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
   // Parent and child trajectory share one wall-clock canvas with distinct colors.
   await expect(maze.locator('.lane-name')).toHaveCount(2)
   await expect(maze.locator('.lane-name').nth(1)).toContainText('Explore#child123')
+  await expect(maze.locator('.seg-label')).toHaveCount(0)
   expect(Number(await maze.locator('.subagent-band').getAttribute('width'))).toBeLessThan(600)
   await expect(maze.locator('.detour-chain')).toHaveCount(2)
   await expect(maze.locator('.recovery-path')).toHaveCount(1)
@@ -55,6 +56,11 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
     if (await allNodes.nth(index).evaluate(element => element._node?.v === 'error')) { errorIndex = index; break }
   }
   expect(errorIndex).toBeGreaterThanOrEqual(0)
+  const userBadge = allNodes.nth(errorIndex).locator('.user-input-badge')
+  await expect(userBadge).toBeVisible()
+  await userBadge.click()
+  await expect(maze.locator('#panelBody')).toContainText('User prompt')
+  await maze.locator('#panelClose').click()
   const imageBadge = allNodes.nth(errorIndex).locator('.image-badge')
   await expect(imageBadge).toBeVisible()
   await imageBadge.click()

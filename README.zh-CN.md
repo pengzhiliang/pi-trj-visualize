@@ -15,6 +15,7 @@
 - **真实时间语义**：assistant 内层时间作为模型请求开始、entry 时间作为响应/工具开始、tool result 时间作为工具结束；长空闲区间自动折叠。
 - **并行工具瀑布**：同一次 assistant response 里的多个 tool call 按 `toolCallId` 精确配对，即使结果乱序也不会串线。
 - **主会话 + Subagent 同轴视图**：父会话与所有直接 Subagent 按真实启动时间放在同一墙钟轴，每条子轨迹使用独立颜色，并从对应的 `Agent` 调用画连接线。
+- **双语界面**：默认英文，顶部 `EN / 中文` 可持久切换，Session shell 与轨迹 iframe 同步更新。
 - **完整交互**：多轨迹时滚轮纵向浏览、`Ctrl/⌘+滚轮` 横向缩放、拖拽平移、失败过滤、工具过滤、命令/结果/思考搜索、详情面板、SVG/PNG 导出、明暗主题。
 - **图片结果**：Pi session 中 user/tool result 的 base64 `image` block 会在详情面板直接显示，支持点击展开原图；列表摘要只保留占位文本，不复制图片数据。
 - **Pi 原生统计**：input/output/reasoning/cache token、成本、模型、provider、compaction、parent session。
