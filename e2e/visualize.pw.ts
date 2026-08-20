@@ -119,6 +119,24 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
   await panelBody.hover()
   await page.mouse.wheel(0, 600)
   await expect.poll(() => panelBody.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+  await expect(maze.locator('#btnDetail')).toHaveText('↔ 52s')
+  await maze.locator('#btnDetail').click()
+  const detailWindow = await maze.locator('#svg').evaluate(svg => {
+    const start = Number(svg.dataset.viewStart)
+    const end = Number(svg.dataset.viewEnd)
+    const panel = document.querySelector('#panel')
+    const matrix = svg.getScreenCTM()
+    if (!matrix || !panel) throw new Error('Missing trajectory geometry')
+    const axisLeft = matrix.e + matrix.a * 56
+    const axisRight = matrix.e + matrix.a * 1556
+    const visibleRight = Math.min(axisRight, panel.getBoundingClientRect().left)
+    const visibleFraction = (visibleRight - axisLeft) / (axisRight - axisLeft)
+    return { start, end, visibleSpan: (end - start) * visibleFraction }
+  })
+  expect(detailWindow.start).toBe(0)
+  expect(detailWindow.visibleSpan).toBeCloseTo(52, 0)
+  await maze.locator('#btnFit').click()
+  await expect(maze.locator('#svg')).not.toHaveAttribute('data-view-start')
   await maze.locator('#panelClose').click()
 
   await maze.locator('#fltQIn').fill('pnpm')
@@ -134,6 +152,7 @@ test('browses inline Subagents, inspects, scrolls panels, and themes Pi sessions
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
   await expect(page.locator('#autoRefreshLabel')).toHaveText('自动刷新')
   await expect(maze.locator('#btnFit')).toHaveText('⤢ 整图')
+  await expect(maze.locator('#btnDetail')).toHaveText('↔ 52 秒')
   await page.locator('#langToggle').click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(maze.locator('#btnFit')).toHaveText('⤢ Fit')

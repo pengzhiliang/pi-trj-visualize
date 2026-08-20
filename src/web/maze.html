@@ -135,6 +135,7 @@
 
 <div class="controls" id="controls" style="display:none">
   <button id="btnFit" title="Reset zoom (or double-click empty space)">⤢ Fit</button>
+  <button id="btnDetail" title="Zoom to a 52-second visible time window">↔ 52s</button>
   <span class="zoomhint">Wheel/↑↓: vertical scroll · ←→: time pan · Ctrl/⌘+wheel: zoom · Drag: pan</span>
 </div>
 
@@ -161,10 +162,10 @@
 'use strict'
 const MAZE_TEXT = {
   en: {
-    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', zoomHint:'Wheel/↑↓: vertical scroll · ←→: time pan · Ctrl/⌘+wheel: zoom · Drag: pan', canvasLabel:'Trajectory canvas', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', userInput:'USER', userInputTitle:'User input · click to inspect', dispatchLink:'Dispatch {name}', returnLink:'Subagent result returned to S{step}', dispatchLegend:'Dispatch to Subagent', returnLegend:'Result back to Main', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', atTime:'at {time}', timeRange:'{start} → {end}', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', verdict:'Verdict', resultContent:'Result', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', openToLoad:'Expand to load the full result', loadingResult:'Loading full result…', loadResultFailed:'Failed to load the full result'
+    fit:'⤢ Fit', fitTitle:'Reset zoom (or double-click empty space)', detail:'↔ 52s', detailTitle:'Zoom to a 52-second visible time window around the selected step', zoomHint:'Wheel/↑↓: vertical scroll · ←→: time pan · Ctrl/⌘+wheel: zoom · Drag: pan · Home: fit · End: 52s', canvasLabel:'Trajectory canvas', failuresOnly:'Failures/retries only', allTools:'All tools', search:'Search commands and results…', exportSvg:'Export current view as SVG', exportPng:'Export current view as PNG (2x)', close:'Close (Esc)', reasoningTokens:'Reasoning {n} tok', reasoningChunks:'{n} reasoning blocks', inputTokens:'Input {n} tok', outputTokens:'Output {n} tok', cacheTokens:'Cache {n}', noUsage:'No token usage', failed:'Failed ✗', deadend:'No result ·', retry:'Wasteful retry ↻', success:'Success', answer:'Answer', mainSession:'Main session', main:'Main', subagent:'Subagent', failureChain:'Failure chain', failureChainTitle:'Failed attempts connected in chronological order', recovery:'Recovery', recoveryTitle:'The last failed attempt reconnects to the next successful step', finalAnswer:'Final answer', idleFolded:'⏸ Idle time folded', steps:'{n} steps', laneStats:'{turns}{steps} steps (main {main} / detours {detours}) · {tools} tool calls · {tokens} · elapsed {elapsed}', turnsPrefix:'{n} turns · ', unknownModel:'(unknown model)', oldModel:'(model unknown: request header is outside the window)', turn:'Turn {n}', recoverTo:'↩ Recover to S{n}', hits:'{hit} / {total} steps matched', pngEmpty:'PNG export failed: canvas encoding returned empty', pngRaster:'PNG export failed: SVG rasterization failed', images:'{n} images · click to view', userInput:'USER', userInputTitle:'User input · click to inspect', dispatchLink:'Dispatch {name}', returnLink:'Subagent result returned to S{step}', dispatchLegend:'Dispatch to Subagent', returnLegend:'Result back to Main', previous:'previous step', chainContext:'Failure chain {position}/{size}: {from} → S{step}', failureContext:'Failed attempt: {from} → S{step}', recovers:'; the chain eventually recovers at S{step}', noRecovery:'; not yet recovered to the successful path', detour:'Detour', rejected:' (rejected)', rationale:'Rationale', interval:'Time {start} → {end} ({duration}s) · {reasoning}', toolInterval:'Time {start} → {end} ({duration}s)', atTime:'at {time}', timeRange:'{start} → {end}', user:'User', result:'Result', response:'Response', reasoning:'Reasoning summary', parallel:'Parallel call', running:'running', noArgs:'(no arguments)', mainProgress:'Main progress', model:'Model', usage:'Tokens: input {input} · output {output} · cache read {cache}', imageNotice:'▧ This step contains {n} image(s) (shown below)', userPrompt:'User prompt', modelAnswer:'Model answer', openSubagent:'↗ Open {name} trajectory', verdict:'Verdict', resultContent:'Result', chars:'{n} chars', imageResults:'Image results', imageCount:'{n} images', openToLoad:'Expand to load the full result', loadingResult:'Loading full result…', loadResultFailed:'Failed to load the full result'
   },
   zh: {
-    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', zoomHint:'滚轮/↑↓纵向浏览 · ←→时间平移 · Ctrl/⌘+滚轮缩放 · 拖拽平移', canvasLabel:'轨迹主画布', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', userInput:'用户', userInputTitle:'用户输入 · 点击查看', dispatchLink:'派发 {name}', returnLink:'Subagent 结果返回到 S{step}', dispatchLegend:'派发到 Subagent', returnLegend:'结果返回 Main', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', atTime:'时间 {time}', timeRange:'{start} → {end}', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', verdict:'判定', resultContent:'返回内容', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', openToLoad:'展开后加载完整结果', loadingResult:'正在加载完整结果…', loadResultFailed:'完整结果加载失败'
+    fit:'⤢ 整图', fitTitle:'复位缩放（双击空白处同效）', detail:'↔ 52 秒', detailTitle:'以选中步骤为中心，将可见时间窗口缩放到 52 秒', zoomHint:'滚轮/↑↓纵向浏览 · ←→时间平移 · Ctrl/⌘+滚轮缩放 · 拖拽平移 · Home：整图 · End：52 秒', canvasLabel:'轨迹主画布', failuresOnly:'只看失败/重试', allTools:'全部工具', search:'搜索命令与返回内容…', exportSvg:'导出当前视图为 SVG', exportPng:'导出当前视图为 PNG（2x）', close:'关闭（Esc）', reasoningTokens:'推理 {n} tok', reasoningChunks:'{n} 段推理', inputTokens:'输入 {n} tok', outputTokens:'输出 {n} tok', cacheTokens:'缓存 {n}', noUsage:'无 token 用量', failed:'失败 ✗', deadend:'扑空 ·', retry:'无效重试 ↻', success:'成功', answer:'回答', mainSession:'主会话', main:'主会话', subagent:'Subagent', failureChain:'连续失败链', failureChainTitle:'按真实先后连接的失败尝试', recovery:'恢复主干', recoveryTitle:'最后一次失败后重新回到成功主干', finalAnswer:'最终回答', idleFolded:'⏸ 空闲已折叠', steps:'{n} 步', laneStats:'{turns}{steps} 步（主干 {main} / 支路 {detours}）· {tools} 次工具调用 · {tokens} · 总耗时 {elapsed}', turnsPrefix:'{n} 轮 · ', unknownModel:'(未知模型)', oldModel:'(模型未知：请求头在窗口外)', turn:'第 {n} 轮', recoverTo:'↩ 恢复到 S{n}', hits:'命中 {hit} / {total} 步', pngEmpty:'PNG 导出失败：canvas 编码为空', pngRaster:'PNG 导出失败：SVG 栅格化未成功', images:'{n} 张图片 · 点击查看', userInput:'用户', userInputTitle:'用户输入 · 点击查看', dispatchLink:'派发 {name}', returnLink:'Subagent 结果返回到 S{step}', dispatchLegend:'派发到 Subagent', returnLegend:'结果返回 Main', previous:'上一步', chainContext:'连续失败链 {position}/{size}：从 {from} 到 S{step}', failureContext:'失败尝试：从 {from} 到 S{step}', recovers:'；该链最终恢复到 S{step}', noRecovery:'；尚未恢复到成功主干', detour:'探索支路', rejected:'（被打回）', rationale:'判定依据', interval:'时段 {start} → {end}（{duration}s）· {reasoning}', toolInterval:'时段 {start} → {end}（{duration}s）', atTime:'时间 {time}', timeRange:'{start} → {end}', user:'用户', result:'返回', response:'回答', reasoning:'思考摘要', parallel:'并行调用', running:'进行中', noArgs:'(无参数)', mainProgress:'主干推进', model:'模型', usage:'Token：输入 {input} · 输出 {output} · 缓存读取 {cache}', imageNotice:'▧ 此步骤包含 {n} 张图片（见下方）', userPrompt:'用户提示', modelAnswer:'模型回答', openSubagent:'↗ 打开 {name} 轨迹', verdict:'判定', resultContent:'返回内容', chars:'{n} 字', imageResults:'图片结果', imageCount:'{n} 张', openToLoad:'展开后加载完整结果', loadingResult:'正在加载完整结果…', loadResultFailed:'完整结果加载失败'
   }
 }
 let LANG = 'en'
@@ -378,6 +379,7 @@ function applyMazeLanguage(lang){
   document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en'
   document.title = `Pi Trj Visualize · ${LANG === 'zh' ? '迷宫时间线' : 'Trajectory Timeline'}`
   document.getElementById('btnFit').textContent = mt('fit'); document.getElementById('btnFit').title = mt('fitTitle')
+  document.getElementById('btnDetail').textContent = mt('detail'); document.getElementById('btnDetail').title = mt('detailTitle')
   document.querySelector('.zoomhint').textContent = mt('zoomHint'); document.getElementById('svgscroll').setAttribute('aria-label',mt('canvasLabel'))
   document.querySelector('#fltbar .fltlab').lastChild.textContent = ' ' + mt('failuresOnly')
   document.getElementById('fltQIn').placeholder = mt('search')
@@ -868,14 +870,19 @@ function drawNode(parent, lane, n, y, isMain, idx){
   const hasBadges = hasUserInput || imageCount > 0
   const labY = isMain ? y + (idx % 2 ? (hasBadges ? -34 : -17) : 28 + parH) : y + 24
   const lab = el('text', { x: cx, y: labY, 'text-anchor': 'middle', class: 'nlabel' })
-  const fullTools = (n.tools ?? []).map(tool => tlabel(tool.name)).join(' · ')
+  const toolNames = (n.tools ?? []).map(tool => tlabel(tool.name))
+  const toolCounts = new Map()
+  toolNames.forEach(name => toolCounts.set(name, (toolCounts.get(name) ?? 0) + 1))
+  // Keep first-seen order but collapse repeated names: bash/read/read/read/read
+  // becomes "bash · read ×4" while the individual sub-bars retain call order.
+  const fullTools = [...toolCounts].map(([name, count]) => count > 1 ? `${name} ×${count}` : name).join(' · ')
   const compactTools = n.tools.length > 0 ? tlabel(n.tools[0].name) + (n.tools.length > 1 ? ' +' + (n.tools.length - 1) : '') : ''
   const full = 'S' + n.step + (fullTools ? ' ' + fullTools : '')
   const compact = 'S' + n.step + (compactTools ? ' ' + compactTools : '')
   const key = lane.key + '-' + rowKey
   const prevEnd = labRows[key] !== undefined ? labRows[key] : -1e9
   // At high zoom the duration capsule itself proves there is room for every
-  // tool name. Fall back to the old "+N" summary only when the capsule or
+  // distinct tool name and count. Fall back to "+N" only when the capsule or
   // neighboring-label gap is genuinely too narrow.
   if (w >= wEst(full) + 8 && cx - prevEnd >= wEst(full) + 12){
     lab.textContent = full
@@ -1030,9 +1037,11 @@ function imagesHtml(images){
 /* ==================== 固定详情面板：点节点/支路弧线打开 ==================== */
 const panelEl = document.getElementById('panel')
 const panelBody = document.getElementById('panelBody')
+let panelNode = null
 let suppressClick = false   // a drag-pan swallows the click it ends on
 
 function openPanel(n, lane, isMain){
+  panelNode = n
   pinnedDet = n._id ? n : null
   document.getElementById('panelTitle').textContent = `${laneName(lane)} S${n.step}`
   const chip = document.getElementById('panelChip')
@@ -1077,6 +1086,7 @@ function openPanel(n, lane, isMain){
   render()
 }
 function closePanel(){
+  panelNode = null
   pinnedDet = null
   panelEl.classList.remove('show')
   render()
@@ -1132,16 +1142,39 @@ function queueBuild(){
     if (DATA){ build(); render() }
   })
 }
-function setViewWindow(t0, t1){
+function setViewWindow(t0, t1, maxEnd = TMAX){
+  const extent = Math.max(TMAX, maxEnd)
   const minSpan = Math.max(TMAX / 4000, 0.5)
-  const span = Math.max(minSpan, Math.min(t1 - t0, TMAX))
-  const s = Math.max(0, Math.min(t0, TMAX - span))
-  VIEW = span >= TMAX - 1e-9 ? null : { t0: s, t1: s + span }
+  const span = Math.max(minSpan, Math.min(t1 - t0, extent))
+  const s = Math.max(0, Math.min(t0, extent - span))
+  VIEW = maxEnd === TMAX && span >= TMAX - 1e-9 ? null : { t0: s, t1: s + span }
   if (VIEW){ svg.dataset.viewStart=String(VIEW.t0); svg.dataset.viewEnd=String(VIEW.t1) }
   else { delete svg.dataset.viewStart; delete svg.dataset.viewEnd }
   queueBuild()
 }
 function fitView(){ VIEW=null; delete svg.dataset.viewStart; delete svg.dataset.viewEnd; queueBuild() }
+const DETAIL_VISIBLE_SECONDS = 52
+/** Fraction of the time axis not covered by the pinned detail panel. */
+function visibleAxisFraction(){
+  if (!panelEl.classList.contains('show')) return 1
+  const matrix = svg.getScreenCTM()
+  if (!matrix) return 1
+  const axisLeft = matrix.e + matrix.a * X0
+  const axisRight = matrix.e + matrix.a * (X0 + AXIS_W)
+  const visibleRight = Math.min(axisRight, panelEl.getBoundingClientRect().left)
+  return Math.max(0.2, Math.min(1, (visibleRight - axisLeft) / (axisRight - axisLeft)))
+}
+/** The inverse of Fit: keep ~52 seconds visible and center the selected step. */
+function detailView(){
+  if (!DATA || TMAX <= DETAIL_VISIBLE_SECONDS) { fitView(); return }
+  const visibleFraction = visibleAxisFraction()
+  const fullSpan = DETAIL_VISIBLE_SECONDS / visibleFraction
+  const focus = panelNode ?? hoverDet
+  const center = focus ? (focus.s + focus.e) / 2 : viewT0() + DETAIL_VISIBLE_SECONDS / 2
+  const visibleStart = Math.max(0, Math.min(center - DETAIL_VISIBLE_SECONDS / 2, TMAX - DETAIL_VISIBLE_SECONDS))
+  const hiddenSpan = Math.max(0, fullSpan - DETAIL_VISIBLE_SECONDS)
+  setViewWindow(visibleStart, visibleStart + fullSpan, TMAX + hiddenSpan)
+}
 /** clientX → compressed-timeline time, via the SVG's live screen matrix. */
 function tAtClientX(cx){
   const m = svg.getScreenCTM()
@@ -1183,7 +1216,8 @@ canvasScroll.addEventListener('keydown', event => {
     }
     event.preventDefault(); return
   }
-  if (event.key === 'Home'){ fitView(); canvasScroll.scrollTo({top:0,behavior:'smooth'}); event.preventDefault() }
+  if (event.key === 'Home'){ fitView(); canvasScroll.scrollTo({top:0,behavior:'smooth'}); event.preventDefault(); return }
+  if (event.key === 'End'){ detailView(); event.preventDefault() }
 })
 let panState = null
 svg.addEventListener('mousedown', e => {
@@ -1213,6 +1247,7 @@ svg.addEventListener('dblclick', e => {
   fitView()
 })
 document.getElementById('btnFit').addEventListener('click', fitView)
+document.getElementById('btnDetail').addEventListener('click', detailView)
 // Esc closes the pinned detail panel; otherwise it bubbles to the shell.
 window.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return

@@ -36,6 +36,8 @@ pi-trj-visualize
 - English-first UI with a persistent `EN / 中文` switch shared by the session shell and trajectory iframe.
 - Resizable session sidebar: drag its right edge, use arrow keys on the separator, or double-click to reset; width persists locally.
 - Includes zoom/pan, filters, full-text search, detail panels, dark mode, and SVG/PNG export.
+- `Fit` shows the whole trajectory; the inverse `52s` detail action aligns the visible time scale to a 52-second window around the selected step.
+- Repeated tool names are count-compressed at high zoom (`bash · read ×4`), while each invocation remains visible in the waterfall.
 - Tool results are collapsed by default and fetched lazily without truncation only when expanded, keeping the tool list scannable.
 - Reasoning summaries longer than 100 characters are collapsed in their true chronological position between the user input and tool execution.
 - Displays native Pi usage (input/output/reasoning/cache tokens and cost).
@@ -67,7 +69,7 @@ The server respects `PI_CODING_AGENT_DIR`, `PI_CODING_AGENT_SESSION_DIR`, and `s
 - **Orange `▧` badge:** the owning step contains images; click the badge to open them.
 - **`⏸` seam:** an idle interval longer than 60 seconds was compressed; displayed durations remain truthful.
 
-When the trajectory canvas is focused, use `↑ / ↓` (or Page Up/Down) for vertical scrolling, `← / →` for time panning, and `Home` to fit the whole view. The wheel still scrolls vertically, `Ctrl/⌘ + wheel` zooms time, and drag pans horizontally.
+When the trajectory canvas is focused, use `↑ / ↓` (or Page Up/Down) for vertical scrolling, `← / →` for time panning, `Home` to fit the whole view, and `End` for the 52-second detail scale. The wheel still scrolls vertically, `Ctrl/⌘ + wheel` zooms time, and drag pans horizontally.
 
 ## Supported Pi data
 
