@@ -6,9 +6,11 @@ import {
   buildSessionSummary,
   listBranches,
   parsePiSessionText,
+  sessionImage,
   sessionToolResultText,
   sessionToMaze,
   type ParsedPiSession,
+  type SessionImageResult,
 } from './pi-session.js'
 import type { MazeLane, SessionDetail, SessionSummary } from './types.js'
 
@@ -102,8 +104,21 @@ function laneEnd(lane: MazeLane): number {
 }
 
 function attachLazyResults(lane: MazeLane, sessionId: string, leafId?: string): void {
+  const addressImages = (images: MazeLane['main'][number]['promptImages'], source: 'prompt' | 'answer' | 'tool', sourceId?: string): void => {
+    if (!images || !sourceId) return
+    images.forEach((image, index) => {
+      if (image.data === undefined) return
+      const params = new URLSearchParams({ id: sessionId, source, sourceId, index: String(index) })
+      if (leafId) params.set('leaf', leafId)
+      image.ref = `/api/image?${params.toString()}`
+      delete image.data
+    })
+  }
   for (const node of [...lane.main, ...lane.detours]) {
+    addressImages(node.promptImages, 'prompt', node.promptEntryId)
+    addressImages(node.answerImages, 'answer', node.entryId)
     for (const tool of node.tools) {
+      addressImages(tool.images, 'tool', tool.callId)
       if (!tool.callId || tool.callId.startsWith('model:') || (tool.resultLength ?? 0) === 0) continue
       const params = new URLSearchParams({ id: sessionId, callId: tool.callId })
       if (leafId) params.set('leaf', leafId)
@@ -120,7 +135,10 @@ export class SessionRepository {
   // only by detail views.
   #cache = new Map<string, CacheEntry>()
   #detailCache = new Map<string, DetailCacheEntry>()
+  #detailPromises = new Map<string, Promise<ParsedPiSession>>()
   #index = new Map<string, IndexedFile>()
+  #summaries: SessionSummary[] = []
+  #lastScanAt = 0
   #scanPromise: Promise<SessionSummary[]> | null = null
 
   private constructor(root: string) {
@@ -137,6 +155,9 @@ export class SessionRepository {
 
   async scan(): Promise<SessionSummary[]> {
     if (this.#scanPromise !== null) return this.#scanPromise
+    // The session list request is immediately followed by one or more detail
+    // requests. Reusing this very fresh index avoids restatting the whole tree.
+    if (this.#summaries.length > 0 && Date.now() - this.#lastScanAt < 1_500) return this.#summaries
     this.#scanPromise = this.#performScan().finally(() => { this.#scanPromise = null })
     return this.#scanPromise
   }
@@ -241,7 +262,9 @@ export class SessionRepository {
     for (const path of this.#cache.keys()) if (!livePaths.has(path)) this.#cache.delete(path)
     for (const path of this.#detailCache.keys()) if (!livePaths.has(path)) this.#detailCache.delete(path)
     this.#index = nextIndex
-    return summaries.sort((left, right) => Date.parse(right.modifiedAt) - Date.parse(left.modifiedAt))
+    this.#summaries = summaries.sort((left, right) => Date.parse(right.modifiedAt) - Date.parse(left.modifiedAt))
+    this.#lastScanAt = Date.now()
+    return this.#summaries
   }
 
   async #parsedDetail(indexed: IndexedFile): Promise<ParsedPiSession> {
@@ -252,14 +275,31 @@ export class SessionRepository {
       this.#detailCache.set(indexed.path, cached)
       return cached.parsed
     }
-    const parsed = parsePiSessionText(await readFile(indexed.path, 'utf8'))
-    this.#detailCache.set(indexed.path, { stamp: indexed.stamp, parsed })
-    while (this.#detailCache.size > 4) {
-      const oldest = this.#detailCache.keys().next().value as string | undefined
-      if (oldest === undefined) break
-      this.#detailCache.delete(oldest)
-    }
-    return parsed
+    const existing = this.#detailPromises.get(indexed.path)
+    if (existing !== undefined) return existing
+    const pending = (async () => {
+      const parsed = parsePiSessionText(await readFile(indexed.path, 'utf8'))
+      this.#detailCache.set(indexed.path, { stamp: indexed.stamp, parsed })
+      while (this.#detailCache.size > 4) {
+        const oldest = this.#detailCache.keys().next().value as string | undefined
+        if (oldest === undefined) break
+        this.#detailCache.delete(oldest)
+      }
+      return parsed
+    })().finally(() => { this.#detailPromises.delete(indexed.path) })
+    this.#detailPromises.set(indexed.path, pending)
+    return pending
+  }
+
+  async image(id: string, source: 'prompt' | 'answer' | 'tool', sourceId: string, index: number, leafId?: string): Promise<SessionImageResult> {
+    await this.scan()
+    const indexed = this.#index.get(id)
+    if (indexed === undefined) throw new Error('SESSION_NOT_FOUND')
+    if (indexed.summary.error !== undefined) throw new Error(`SESSION_INVALID:${indexed.summary.error}`)
+    const parsed = await this.#parsedDetail(indexed)
+    const image = sessionImage(parsed, source, sourceId, index, leafId ?? parsed.activeLeafId)
+    if (image === null) throw new Error('IMAGE_NOT_FOUND')
+    return image
   }
 
   async toolResult(id: string, callId: string, leafId?: string): Promise<string> {
@@ -278,14 +318,21 @@ export class SessionRepository {
     const indexed = this.#index.get(id)
     if (indexed === undefined) throw new Error('SESSION_NOT_FOUND')
     if (indexed.summary.error !== undefined) throw new Error(`SESSION_INVALID:${indexed.summary.error}`)
-    const parsed = await this.#parsedDetail(indexed)
-    const selectedLeafId = leafId ?? parsed.activeLeafId ?? undefined
-    const data = sessionToMaze(parsed, selectedLeafId)
-    data.lanes[0]!.title = indexed.summary.name ?? indexed.summary.project
+    const parentParse = this.#parsedDetail(indexed)
     const subagents = [...this.#index.values()]
       .filter(candidate => candidate.summary.parentId === id && candidate.summary.error === undefined)
       .map(candidate => candidate.summary)
       .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt))
+    // Start every independent child read/parse before awaiting the parent. The
+    // JSONL files are separate, so their I/O can proceed concurrently.
+    const childParses = new Map(subagents.flatMap(child => {
+      const childIndexed = this.#index.get(child.id)
+      return childIndexed === undefined ? [] : [[child.id, this.#parsedDetail(childIndexed).catch(() => null)] as const]
+    }))
+    const parsed = await parentParse
+    const selectedLeafId = leafId ?? parsed.activeLeafId ?? undefined
+    const data = sessionToMaze(parsed, selectedLeafId)
+    data.lanes[0]!.title = indexed.summary.name ?? indexed.summary.project
 
     // Child session_info names use "Type#<agent-id-prefix>". Agent tool results
     // carry the same id, so wire the parent step directly to the full child
@@ -350,10 +397,9 @@ export class SessionRepository {
     data.lanes[0]!.color = '#2563eb'
     for (let index = 0; index < subagents.length; index += 1) {
       const child = subagents[index]!
-      const childIndexed = this.#index.get(child.id)
-      if (childIndexed === undefined) continue
+      const childParsed = await childParses.get(child.id)
+      if (childParsed === undefined || childParsed === null) continue
       try {
-        const childParsed = await this.#parsedDetail(childIndexed)
         const childData = sessionToMaze(childParsed, childParsed.activeLeafId, `sa${index + 1}`)
         const lane = childData.lanes[0]!
         const offset = Math.max(0, ((lane.anchorMs ?? Date.parse(child.createdAt)) - parentAnchor) / 1000)

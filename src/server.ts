@@ -37,6 +37,17 @@ function json(response: ServerResponse, status: number, value: unknown): void {
   response.end(JSON.stringify(value))
 }
 
+function image(response: ServerResponse, mimeType: string, base64: string): void {
+  const bytes = Buffer.from(base64, 'base64')
+  setSecurityHeaders(response)
+  response.writeHead(200, {
+    'Content-Type': /^image\/[a-z0-9.+-]+$/i.test(mimeType) ? mimeType : 'image/png',
+    'Content-Length': bytes.length,
+    'Cache-Control': 'private, max-age=300',
+  })
+  response.end(bytes)
+}
+
 async function serveFile(response: ServerResponse, path: string): Promise<void> {
   try {
     const fileStat = await stat(path)
@@ -95,6 +106,26 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
         projects: new Set(sessions.map(session => session.cwd)).size,
         sessions,
       })
+      return
+    }
+    if (url.pathname === '/api/image') {
+      const id = url.searchParams.get('id')
+      const source = url.searchParams.get('source')
+      const sourceId = url.searchParams.get('sourceId')
+      const index = Number(url.searchParams.get('index'))
+      if (!id || !sourceId || (source !== 'prompt' && source !== 'answer' && source !== 'tool') || !Number.isSafeInteger(index) || index < 0) {
+        json(response, 400, { error: 'Invalid image address' })
+        return
+      }
+      try {
+        const result = await repository.image(id, source, sourceId, index, url.searchParams.get('leaf') ?? undefined)
+        image(response, result.mimeType, result.data)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (message === 'SESSION_NOT_FOUND' || message === 'IMAGE_NOT_FOUND') json(response, 404, { error: 'Image not found' })
+        else if (message.startsWith('SESSION_INVALID:')) json(response, 422, { error: message.slice('SESSION_INVALID:'.length) })
+        else throw error
+      }
       return
     }
     if (url.pathname === '/api/tool-result') {

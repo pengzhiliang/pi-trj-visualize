@@ -14,7 +14,7 @@ afterEach(async () => {
 function tinySession(): string {
   return [
     { type: 'session', version: 3, id: 'tiny', timestamp: '2026-08-20T00:00:00.000Z', cwd: '/srv/project' },
-    { type: 'message', id: 'u', parentId: null, timestamp: '2026-08-20T00:00:00.100Z', message: { role: 'user', content: 'Do the thing', timestamp: 1_787_184_000_100 } },
+    { type: 'message', id: 'u', parentId: null, timestamp: '2026-08-20T00:00:00.100Z', message: { role: 'user', content: [{ type: 'text', text: 'Do the thing' }, { type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' }], timestamp: 1_787_184_000_100 } },
     { type: 'message', id: 'a', parentId: 'u', timestamp: '2026-08-20T00:00:01.000Z', message: { role: 'assistant', content: [{ type: 'text', text: 'Done' }], provider: 'test', model: 'model', stopReason: 'stop', timestamp: 1_787_184_000_200, usage: { input: 10, output: 2, totalTokens: 12 } } },
   ].map(value => JSON.stringify(value)).join('\n') + '\n'
 }
@@ -40,8 +40,15 @@ describe('standalone server', () => {
 
     const detailResponse = await fetch(`${base}/api/session?id=${list.sessions[0]!.id}`)
     expect(detailResponse.status).toBe(200)
-    const detail = await detailResponse.json() as { data: { lanes: { stats: { steps: number } }[] } }
+    const detail = await detailResponse.json() as { data: { lanes: { stats: { steps: number }; main: { promptImages?: { data?: string; ref?: string }[] }[] }[] } }
     expect(detail.data.lanes[0]!.stats.steps).toBe(1)
+    const imageRef = detail.data.lanes[0]!.main[0]!.promptImages?.[0]?.ref
+    expect(imageRef).toMatch(/^\/api\/image\?/)
+    expect(detail.data.lanes[0]!.main[0]!.promptImages?.[0]?.data).toBeUndefined()
+    const imageResponse = await fetch(`${base}${imageRef}`)
+    expect(imageResponse.status).toBe(200)
+    expect(imageResponse.headers.get('content-type')).toBe('image/png')
+    expect((await imageResponse.arrayBuffer()).byteLength).toBeGreaterThan(0)
 
     expect((await fetch(`${base}/api/session?id=../../etc/passwd`)).status).toBe(404)
     expect((await fetch(`${base}/api/session`)).status).toBe(400)

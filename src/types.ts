@@ -13,7 +13,10 @@ export interface PiUsage {
 
 export interface MazeImage {
   mimeType: string
-  data: string
+  /** Inline base64 for synthetic data; persisted session images use ref instead. */
+  data?: string
+  /** Lazy same-origin endpoint for the persisted image bytes. */
+  ref?: string
 }
 
 export interface MazeTool {
@@ -49,6 +52,8 @@ export interface MazeNode {
   modelEnd?: number
   /** Timestamp of the user input that started this turn. */
   promptAt?: number
+  /** Entry id used to address user images lazily. */
+  promptEntryId?: string
   tools: MazeTool[]
   rz: number
   rzTxt: string

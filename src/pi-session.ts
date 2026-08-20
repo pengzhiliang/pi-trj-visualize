@@ -278,6 +278,35 @@ function toolResultText(message: Record<string, unknown>): string {
   return isRecord(message.details) ? toolArguments(message.details) : ''
 }
 
+export interface SessionImageResult {
+  mimeType: string
+  data: string
+}
+
+/** Resolve one persisted image while keeping base64 out of the initial maze payload. */
+export function sessionImage(
+  session: ParsedPiSession,
+  source: 'prompt' | 'answer' | 'tool',
+  sourceId: string,
+  index: number,
+  leafId = session.activeLeafId,
+): SessionImageResult | null {
+  const branch = resolveBranch(session, leafId)
+  let entry: SessionEntry | undefined
+  if (source === 'tool') {
+    entry = branch.find(candidate => {
+      const message = messageOf(candidate)
+      return message?.role === 'toolResult' && message.toolCallId === sourceId
+    })
+  } else {
+    entry = branch.find(candidate => candidate.id === sourceId)
+    const role = entry === undefined ? null : messageOf(entry)?.role
+    if (role !== (source === 'prompt' ? 'user' : 'assistant')) entry = undefined
+  }
+  const image = entry === undefined ? undefined : imageContent(messageOf(entry)?.content)[index]
+  return image?.data === undefined ? null : { mimeType: image.mimeType, data: image.data }
+}
+
 /** Resolve one persisted tool result without truncation for the lazy detail API. */
 export function sessionToolResultText(session: ParsedPiSession, callId: string, leafId = session.activeLeafId): string | null {
   for (const entry of resolveBranch(session, leafId)) {
@@ -319,6 +348,7 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
   let pendingPrompt = ''
   let pendingPromptImages: MazeImage[] = []
   let pendingPromptAt: number | null = null
+  let pendingPromptEntryId: string | null = null
   let latestModel: string | null = null
   let latestProvider: string | null = null
 
@@ -336,6 +366,7 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
       pendingPrompt = textContent(message.content).trim()
       pendingPromptImages = includeImages ? imageContent(message.content) : []
       pendingPromptAt = rel(messageTime(entry))
+      pendingPromptEntryId = entry.id
       continue
     }
     if (role === 'assistant') {
@@ -373,9 +404,11 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
       const prompt = pendingPrompt
       const promptImages = pendingPromptImages
       const promptAt = pendingPromptAt
+      const promptEntryId = pendingPromptEntryId
       pendingPrompt = ''
       pendingPromptImages = []
       pendingPromptAt = null
+      pendingPromptEntryId = null
       rows.push({
         step, entryId: entry.id, turn: Math.max(turn, 1), s: requestStart, e: end, modelEnd: responseEnd, tools,
         rz: thinking.count, rzTxt: thinking.text.slice(0, 240), rzTxtFull: thinking.text.slice(0, 2000),
@@ -383,6 +416,7 @@ export function sessionToMaze(session: ParsedPiSession, leafId = session.activeL
         ...(prompt === '' ? {} : { prompt: clip(prompt, 5000) }),
         ...(promptImages.length === 0 ? {} : { promptImages }),
         ...(promptAt === null ? {} : { promptAt }),
+        ...(promptEntryId === null ? {} : { promptEntryId }),
         ...(answer === '' ? {} : { answer: clip(answer, 5000) }),
         ...(answerImages.length === 0 ? {} : { answerImages }),
         ...(latestModel === null ? {} : { model: latestModel }),

@@ -32,11 +32,11 @@ pi-trj-visualize
 - Matches parallel tool results by `toolCallId`, independent of result order.
 - Renders parent and direct Subagent trajectories on one real wall-clock axis: dashed curves dispatch work downward, and dotted curves return completed results to the parent step that consumed them. No return edge is invented when the result was never consumed.
 - Chains consecutive failed attempts chronologically and draws only one recovery edge to the next successful step.
-- Displays base64 image blocks from user/assistant/tool-result messages, with an image badge on the owning turn.
+- Displays image blocks from user/assistant/tool-result messages, with an image badge on the owning turn; persisted base64 bytes are fetched lazily rather than embedded in the initial payload.
 - English-first UI with a persistent `EN / 中文` switch shared by the session shell and trajectory iframe.
 - Resizable session sidebar: drag its right edge, use arrow keys on the separator, or double-click to reset; width persists locally.
 - Includes zoom/pan, filters, full-text search, detail panels, dark mode, and SVG/PNG export.
-- `Fit` shows the whole trajectory; the inverse `52s` detail action aligns the visible time scale to a 52-second window around the selected step.
+- `Fit` shows the whole trajectory; the inverse `60s` detail action aligns the visible time scale to a 60-second window around the selected step.
 - Repeated tool names are count-compressed at high zoom (`bash · read ×4`), while each invocation remains visible in the waterfall.
 - Tool results are collapsed by default and fetched lazily without truncation only when expanded, keeping the tool list scannable.
 - Reasoning summaries longer than 100 characters are collapsed in their true chronological position between the user input and tool execution.
@@ -69,7 +69,7 @@ The server respects `PI_CODING_AGENT_DIR`, `PI_CODING_AGENT_SESSION_DIR`, and `s
 - **Orange `▧` badge:** the owning step contains images; click the badge to open them.
 - **`⏸` seam:** an idle interval longer than 60 seconds was compressed; displayed durations remain truthful.
 
-When the trajectory canvas is focused, use `↑ / ↓` (or Page Up/Down) for vertical scrolling, `← / →` for time panning, `Home` to fit the whole view, and `End` for the 52-second detail scale. The wheel still scrolls vertically, `Ctrl/⌘ + wheel` zooms time, and drag pans horizontally.
+When the trajectory canvas is focused, use `↑ / ↓` (or Page Up/Down) for vertical scrolling, `← / →` for time panning, `Home` to fit the whole view, and `End` for the 60-second detail scale. The wheel still scrolls vertically, `Ctrl/⌘ + wheel` zooms time, and drag pans horizontally.
 
 ## Supported Pi data
 
@@ -108,7 +108,8 @@ src/web/maze.html           SVG trajectory renderer and EN/ZH details
 - `/api/session` accepts only opaque IDs from the scan index, never arbitrary paths.
 - The default listener is `127.0.0.1` and validates loopback `Host` headers against DNS rebinding.
 - Initial parsing uses at most six workers; the list cache stores summaries only and full trees use a four-entry LRU.
-- Full tool results are omitted from the initial browser payload and fetched through an opaque-ID endpoint only when the user expands a result; reasoning excerpts remain capped at 2,000 characters.
+- Full tool results and base64 image bytes are omitted from the initial browser payload and fetched through opaque-ID endpoints only when needed; reasoning excerpts remain capped at 2,000 characters.
+- Parent and Subagent JSONL reads start concurrently, duplicate detail parses share one in-flight promise, and the fresh session index is reused across the list-to-detail transition.
 
 For Chinese documentation, see [README.zh-CN.md](README.zh-CN.md).
 
